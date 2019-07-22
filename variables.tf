@@ -30,6 +30,29 @@ variable "storage_hostname" {
    type = "list"
 }
 
-variable "domain" {
+variable "domain" {}
 
+variable "master_count" {}
+variable "infra_count" {}
+variable "app_count" {}
+variable "storage_count" {}
+
+variable "openshift_identity_provider" {
+    default = "openshift_master_htpasswd_users={'admin': '$apr1$qSzqkDd8$fU.yI4bV8KmXD9kreFSL//'}"
+}
+
+variable "registry_volume_size" {
+    default = "100"
+}
+
+variable "dnscerts" {
+    default = false
+}
+
+variable "ssh_username" {
+    default = "root"
+}
+
+variable "cloudprovider" {
+    default = "ibm"
 }
