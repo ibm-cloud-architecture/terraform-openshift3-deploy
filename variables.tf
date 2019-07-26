@@ -32,11 +32,6 @@ variable "storage_hostname" {
 
 variable "domain" {}
 
-variable "master_count" {}
-variable "infra_count" {}
-variable "app_count" {}
-variable "storage_count" {}
-
 variable "openshift_identity_provider" {
     default = "openshift_master_htpasswd_users={'admin': '$apr1$qSzqkDd8$fU.yI4bV8KmXD9kreFSL//'}"
 }
