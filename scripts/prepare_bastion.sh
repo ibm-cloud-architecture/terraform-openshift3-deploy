@@ -14,8 +14,9 @@ yum install -y atomic-openshift-excluder atomic-openshift-docker-excluder
 
 atomic-openshift-excluder unexclude
 
-for config in /etc/sysconfig/network-scripts/ifcfg-eth*; do
-    sed -i -e 's/NM_CONTROLLED=.*/NM_CONTROLLED=yes/' $config
+for config in /etc/sysconfig/network-scripts/ifcfg-e*; do
+    sed -i -e '/NM_CONTROLLED=/d' $config
+    echo "NM_CONTROLLED=yes" >> $config
 done
 
 systemctl enable NetworkManager

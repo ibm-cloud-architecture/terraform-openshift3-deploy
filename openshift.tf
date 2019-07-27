@@ -22,7 +22,7 @@ resource "null_resource" "pre_install_cluster_bastion" {
     provisioner "remote-exec" {
         inline = [
             "sudo chmod +x /tmp/scripts/*",
-            "sudo cat ~/hosts >> /etc/hosts",
+            "cat ~/hosts | sudo tee -a /etc/hosts",
             "sudo chmod 600 ~/.ssh/id_rsa",
             "sudo /tmp/scripts/prepare_bastion.sh",
         ]
@@ -54,8 +54,8 @@ resource "null_resource" "pre_install_cluster_master" {
     provisioner "remote-exec" {
         inline = [
             "sudo chmod +x /tmp/scripts/*",
-            "sudo cat ~/hosts >> /etc/hosts",
-            "sudo /tmp/scripts/prepare_node.sh"
+            "cat ~/hosts | sudo tee -a /etc/hosts",
+            "sudo /tmp/scripts/prepare_node.sh ${var.master["docker_disk_device"]}"
         ]
     }
 
@@ -85,8 +85,8 @@ resource "null_resource" "pre_install_cluster_infra" {
     provisioner "remote-exec" {
         inline = [
             "sudo chmod +x /tmp/scripts/*",
-            "sudo cat ~/hosts >> /etc/hosts",
-            "sudo /tmp/scripts/prepare_node.sh"
+            "cat ~/hosts | sudo tee -a /etc/hosts",
+            "sudo /tmp/scripts/prepare_node.sh ${var.infra["docker_disk_device"]}"
         ]
     }
 }
@@ -115,8 +115,8 @@ resource "null_resource" "pre_install_cluster_app" {
     provisioner "remote-exec" {
         inline = [
             "sudo chmod +x /tmp/scripts/*",
-            "sudo cat ~/hosts >> /etc/hosts",
-            "sudo /tmp/scripts/prepare_node.sh"
+            "cat ~/hosts | sudo tee -a /etc/hosts",
+            "sudo /tmp/scripts/prepare_node.sh ${var.worker["docker_disk_device"]}"
         ]
     }
 }
@@ -146,8 +146,8 @@ resource "null_resource" "pre_install_cluster_storage" {
     provisioner "remote-exec" {
         inline = [
             "sudo chmod +x /tmp/scripts/*",
-            "sudo cat ~/hosts >> /etc/hosts",
-            "sudo /tmp/scripts/prepare_node.sh"
+            "cat ~/hosts | sudo tee -a /etc/hosts",
+            "sudo /tmp/scripts/prepare_node.sh ${var.storage["docker_disk_device"]}"
         ]
     }
 }
@@ -167,7 +167,7 @@ resource "null_resource" "deploy_cluster" {
   connection {
     type     = "ssh"
     user     = "${var.ssh_username}"
-    host = "${var.bastion_ip_address}"
+    host     = "${var.bastion_ip_address}"
     private_key = "${file(var.bastion_private_ssh_key)}"
   }
 
@@ -201,7 +201,7 @@ resource "null_resource" "post_install_cluster_master" {
 
   provisioner "remote-exec" {
     inline = [
-      "/tmp/scripts/post_install_node.sh",
+      "sudo /tmp/scripts/post_install_node.sh",
     ]
   }
   depends_on    = ["null_resource.deploy_cluster"]
@@ -220,7 +220,7 @@ resource "null_resource" "post_install_cluster_infra" {
 
   provisioner "remote-exec" {
     inline = [
-      "/tmp/scripts/post_install_node.sh",
+      "sudo /tmp/scripts/post_install_node.sh",
     ]
   }
   depends_on    = ["null_resource.deploy_cluster"]
@@ -239,7 +239,7 @@ resource "null_resource" "post_install_cluster_app" {
 
   provisioner "remote-exec" {
     inline = [
-      "/tmp/scripts/post_install_node.sh",
+      "sudo /tmp/scripts/post_install_node.sh",
     ]
   }
   depends_on    = ["null_resource.deploy_cluster"]
@@ -258,7 +258,7 @@ resource "null_resource" "post_install_cluster_storage" {
 
   provisioner "remote-exec" {
     inline = [
-      "/tmp/scripts/post_install_node.sh",
+      "sudo /tmp/scripts/post_install_node.sh",
     ]
   }
   depends_on    = ["null_resource.deploy_cluster"]
