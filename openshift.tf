@@ -263,3 +263,13 @@ resource "null_resource" "post_install_cluster_storage" {
   }
   depends_on    = ["null_resource.deploy_cluster"]
 }
+
+resource "random_id" "completed" {
+    byte_length = 1
+    depends_on = [
+        "null_resource.post_install_cluster_master",
+        "null_resource.post_install_cluster_infra",
+        "null_resource.post_install_cluster_app",
+        "null_resource.post_install_cluster_storage",
+    ]
+}

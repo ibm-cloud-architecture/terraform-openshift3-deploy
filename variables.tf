@@ -40,3 +40,7 @@ variable "master"  { type = "map" }
 variable "infra"   { type = "map" }
 variable "worker"  { type = "map" }
 variable "storage" { type = "map" }
+variable "dependencies" {
+    type = "list"
+    default = []
+}
