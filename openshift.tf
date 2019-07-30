@@ -27,9 +27,6 @@ resource "null_resource" "pre_install_cluster_bastion" {
             "sudo /tmp/scripts/prepare_bastion.sh",
         ]
     }
-    depends_on = [
-        "null_resource.dependency",
-    ]
 }
 
 resource "null_resource" "pre_install_cluster_master" {
@@ -60,10 +57,6 @@ resource "null_resource" "pre_install_cluster_master" {
             "sudo /tmp/scripts/prepare_node.sh ${var.master["docker_disk_device"]}"
         ]
     }
-    depends_on = [
-        "null_resource.dependency",
-    ]
-
 }
 
 resource "null_resource" "pre_install_cluster_infra" {
@@ -94,9 +87,6 @@ resource "null_resource" "pre_install_cluster_infra" {
             "sudo /tmp/scripts/prepare_node.sh ${var.infra["docker_disk_device"]}"
         ]
     }
-    depends_on = [
-        "null_resource.dependency",
-    ]
 }
 
 resource "null_resource" "pre_install_cluster_app" {
@@ -127,9 +117,6 @@ resource "null_resource" "pre_install_cluster_app" {
             "sudo /tmp/scripts/prepare_node.sh ${var.worker["docker_disk_device"]}"
         ]
     }
-    depends_on = [
-        "null_resource.dependency",
-    ]
 }
 
 
@@ -161,9 +148,6 @@ resource "null_resource" "pre_install_cluster_storage" {
             "sudo /tmp/scripts/prepare_node.sh ${var.storage["docker_disk_device"]}"
         ]
     }
-    depends_on = [
-        "null_resource.dependency",
-    ]
 }
 
 #################################################
@@ -197,9 +181,6 @@ resource "null_resource" "deploy_cluster" {
         "ansible-playbook -i ~/inventory.cfg /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml",
     ]
   }
-  depends_on = [
-      "null_resource.dependency",
-  ]
 }
 
 #################################################
@@ -240,10 +221,7 @@ resource "null_resource" "post_install_cluster_infra" {
       "sudo /tmp/scripts/post_install_node.sh",
     ]
   }
-  depends_on    = [
-      "null_resource.deploy_cluster",
-      "null_resource.dependency",
-  ]
+  depends_on = ["null_resource.deploy_cluster"]
 }
 
 resource "null_resource" "post_install_cluster_app" {
@@ -262,10 +240,7 @@ resource "null_resource" "post_install_cluster_app" {
       "sudo /tmp/scripts/post_install_node.sh",
     ]
   }
-  depends_on    = [
-      "null_resource.deploy_cluster",
-      "null_resource.dependency",
-  ]
+  depends_on = ["null_resource.deploy_cluster"]
 }
 
 resource "null_resource" "post_install_cluster_storage" {
@@ -284,10 +259,7 @@ resource "null_resource" "post_install_cluster_storage" {
       "sudo /tmp/scripts/post_install_node.sh",
     ]
   }
-  depends_on    = [
-      "null_resource.deploy_cluster",
-      "null_resource.dependency",
-  ]
+  depends_on = ["null_resource.deploy_cluster"]
 }
 
 resource "random_id" "completed" {
@@ -296,13 +268,6 @@ resource "random_id" "completed" {
         "null_resource.post_install_cluster_master",
         "null_resource.post_install_cluster_infra",
         "null_resource.post_install_cluster_app",
-        "null_resource.post_install_cluster_storage",
-        "null_resource.dependency"
+        "null_resource.post_install_cluster_storage"
     ]
-}
-
-resource "null_resource" "dependency" {
-  triggers = {
-    all_dependencies = "${join(",", var.dependencies)}"
-  }
 }
