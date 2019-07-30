@@ -31,7 +31,7 @@ resource "null_resource" "pre_install_cluster_bastion" {
 }
 
 resource "null_resource" "pre_install_cluster_master" {
-    count = "${length(var.master_private_ip)}"
+    count = "${var.master["nodes"]}"
     connection {
         type = "ssh"
         user = "${var.ssh_username}"
@@ -62,7 +62,7 @@ resource "null_resource" "pre_install_cluster_master" {
 }
 
 resource "null_resource" "pre_install_cluster_infra" {
-    count = "${length(var.infra_private_ip)}"
+    count = "${var.infra["nodes"]}"
     connection {
         type = "ssh"
         user = "${var.ssh_username}"
@@ -92,7 +92,7 @@ resource "null_resource" "pre_install_cluster_infra" {
 }
 
 resource "null_resource" "pre_install_cluster_app" {
-    count = "${length(var.app_private_ip)}"
+    count = "${var.worker["nodes"]}"
     connection {
         type = "ssh"
         user = "${var.ssh_username}"
@@ -123,7 +123,7 @@ resource "null_resource" "pre_install_cluster_app" {
 
 
 resource "null_resource" "pre_install_cluster_storage" {
-    count = "${length(var.storage_private_ip)}"
+    count = "${var.storage["nodes"]}"
     connection {
         type = "ssh"
         user = "${var.ssh_username}"
@@ -189,7 +189,7 @@ resource "null_resource" "deploy_cluster" {
 # Perform post-install configurations for Openshift
 #################################################
 resource "null_resource" "post_install_cluster_master" {
-  count = "${length(var.master_private_ip)}"
+  count = "${var.master["nodes"]}"
   connection {
     type     = "ssh"
     user     = "${var.ssh_username}"
@@ -208,7 +208,7 @@ resource "null_resource" "post_install_cluster_master" {
 }
 
 resource "null_resource" "post_install_cluster_infra" {
-  count = "${length(var.infra_private_ip)}"
+  count = "${var.infra["nodes"]}"
   connection {
     type     = "ssh"
     user     = "${var.ssh_username}"
@@ -227,7 +227,7 @@ resource "null_resource" "post_install_cluster_infra" {
 }
 
 resource "null_resource" "post_install_cluster_app" {
-  count = "${length(var.app_private_ip)}"
+  count = "${var.worker["nodes"]}"
   connection {
     type     = "ssh"
     user     = "${var.ssh_username}"
@@ -246,7 +246,7 @@ resource "null_resource" "post_install_cluster_app" {
 }
 
 resource "null_resource" "post_install_cluster_storage" {
-  count = "${length(var.storage_private_ip)}"
+  count = "${var.storage["nodes"]}"
   connection {
     type     = "ssh"
     user     = "${var.ssh_username}"
