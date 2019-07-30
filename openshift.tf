@@ -271,5 +271,12 @@ resource "random_id" "completed" {
         "null_resource.post_install_cluster_infra",
         "null_resource.post_install_cluster_app",
         "null_resource.post_install_cluster_storage",
+        "null_resource.dependency"
     ]
+}
+
+resource "null_resource" "dependency" {
+  triggers = {
+    all_dependencies = "${join(",", var.dependencies)}"
+  }
 }
