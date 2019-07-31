@@ -201,7 +201,7 @@ resource "null_resource" "post_install_cluster" {
   provisioner "remote-exec" {
     inline = [
       "chmod u+x /tmp/post_install_node.sh",
-      "/tmp/post_install_node.sh"
+      "sudo /tmp/post_install_node.sh"
     ]
   }
 

@@ -11,9 +11,9 @@ data "template_file" "ansible_inventory" {
 masters
 etcd
 nodes
-${var.haproxy ? "lb" : ""}
-
+${var.haproxy["nodes"] != 0 ? "lb" : ""}
 ${var.storage["nodes"] == 0 ? "" : "glusterfs"}
+
 [OSEv3:vars]
 ansible_ssh_user=${var.ssh_user}
 ${var.ssh_user == "root" ? "" : "ansible_become=true"}
@@ -114,8 +114,8 @@ ${var.storage["nodes"] == 0 ? "" : "${join("\n", formatlist("%v.%v openshift_sch
 var.storage_hostname,
 var.domain))}"}
 
-${var.haproxy ? "[lb]" : ""}
-${var.haproxy ? "${var.bastion_hostname}.${var.domain}" : ""}
+${var.haproxy["nodes"] != 0 ? "[lb]" : ""}
+${var.haproxy["nodes"] != 0 ? "${join("\n", formatlist("%v.%v", var.haproxy_hostname, var.domain))}" : ""}
 EOF
 }
 

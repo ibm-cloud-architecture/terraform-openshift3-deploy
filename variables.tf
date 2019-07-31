@@ -11,6 +11,7 @@ variable "master_hostname"    { type = "list" }
 variable "infra_hostname"     { type = "list" }
 variable "app_hostname"       { type = "list" }
 variable "storage_hostname"   { type = "list" }
+variable "haproxy_hostname"   { type = "list" }
 
 variable "domain" {}
 
@@ -40,6 +41,7 @@ variable "master"  { type = "map" }
 variable "infra"   { type = "map" }
 variable "worker"  { type = "map" }
 variable "storage" { type = "map" }
+variable "haproxy" { type = "map" }
 
 variable "ose_version" {
     default = "3.11"
@@ -87,10 +89,6 @@ variable "cluster_public_hostname" {}
 variable "dependson" {
     type = "list"
     default = []
-}
-
-variable "haproxy" {
-  default = false
 }
 
 variable "bastion_hostname" {}
