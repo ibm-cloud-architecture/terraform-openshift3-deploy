@@ -35,6 +35,7 @@ oreg_auth_user=${var.image_registry_username}
 oreg_auth_password=${var.image_registry_password}
 oreg_test_login=false
 openshift_certificate_expiry_fail_on_warn=false
+openshift_docker_options='--selinux-enabled --insecure-registry 172.30.0.0/16 --log-driver=json-file --log-opt max-size=1M --log-opt max-file=3'
 # master console
 openshift_master_cluster_method=native
 openshift_master_cluster_hostname=${var.master_cluster_hostname}
@@ -62,11 +63,13 @@ ${var.storage["nodes"] == 0 ? "" : "openshift_storage_glusterfs_block_deploy=tru
 ${var.storage["nodes"] == 0 ? "" : "openshift_storage_glusterfs_block_storageclass=true"}
 ${var.storage["nodes"] == 0 ? "" : "openshift_storage_glusterfs_storageclass=true"}
 ${var.storage["nodes"] == 0 ? "" : "openshift_storage_glusterfs_storageclass_default=true"}
+
 # gluster images
 openshift_storage_glusterfs_image=${var.image_registry}/rhgs3/rhgs-server-rhel7:v${var.openshift_version}
 openshift_storage_glusterfs_block_image=${var.image_registry}/rhgs3/rhgs-gluster-block-prov-rhel7:v${var.openshift_version}
 openshift_storage_glusterfs_s3_image=${var.image_registry}/rhgs3/rhgs-s3-server-rhel7:v${var.openshift_version}
 openshift_storage_glusterfs_heketi_image=${var.image_registry}/rhgs3/rhgs-volmanager-rhel7:v${var.openshift_version}
+
 # monitoring
 openshift_cluster_monitoring_operator_install=true
 openshift_cluster_monitoring_operator_prometheus_storage_enabled=true
@@ -74,18 +77,27 @@ openshift_cluster_monitoring_operator_prometheus_storage_class_name=glusterfs-st
 openshift_cluster_monitoring_operator_alertmanager_storage_enabled=true
 openshift_cluster_monitoring_operator_alertmanager_storage_class_name=glusterfs-storage-block
 openshift_cluster_monitoring_operator_node_selector={"node-role.kubernetes.io/infra":"true"}
+
 # metrics
 openshift_metrics_install_metrics=true
 openshift_metrics_cassandra_storage_type=dynamic
 openshift_metrics_cassandra_pvc_storage_class_name=glusterfs-storage-block
+openshift_metrics_hawkular_nodeselector={"node-role.kubernetes.io/infra": "true"}
+openshift_metrics_cassandra_nodeselector={"node-role.kubernetes.io/infra": "true"}
+openshift_metrics_heapster_nodeselector={"node-role.kubernetes.io/infra": "true"}
+openshift_metrics_storage_volume_size=20Gi
+
 # logging
 openshift_logging_install_logging=true
 openshift_logging_es_pvc_dynamic=true
-openshift_logging_es_pvc_storage_class_name=glusterfs-storage-block
+openshift_logging_es_pvc_storage_class_name="glusterfs-storage-block"
 openshift_logging_es_pvc_size=20Gi
 openshift_logging_es_ops_nodeselector={"node-role.kubernetes.io/infra":"true"}
 openshift_logging_es_nodeselector={"node-role.kubernetes.io/infra":"true"}
+openshift_logging_kibana_nodeselector={"node-role.kubernetes.io/infra": "true"}
+openshift_logging_curator_nodeselector={"node-role.kubernetes.io/infra": "true"}
 openshift_logging_es_cluster_size=${var.infra["nodes"]}
+
 [masters]
 ${join("\n", formatlist("%v.%v",
 var.master_hostname,

@@ -181,29 +181,29 @@ resource "null_resource" "deploy_cluster" {
 #################################################
 # Perform post-install configurations for Openshift
 #################################################
-resource "null_resource" "post_install_cluster" {
-  count = "${length(local.all_node_ips)}"
-
-  connection {
-      type = "ssh"
-      host = "${element(local.all_node_ips, count.index)}"
-      user = "${var.ssh_user}"
-      private_key = "${file(var.bastion_private_ssh_key)}"
-      bastion_host = "${var.bastion_ip_address}"
-      bastion_host_key = "${file(var.bastion_private_ssh_key)}"
-  }
-
-  provisioner "file" {
-    source      = "${path.module}/scripts/post_install_node.sh"
-    destination = "/tmp/post_install_node.sh"
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "chmod u+x /tmp/post_install_node.sh",
-      "sudo /tmp/post_install_node.sh"
-    ]
-  }
-
-  depends_on    = ["null_resource.deploy_cluster"]
-}
+# resource "null_resource" "post_install_cluster" {
+#   count = "${length(local.all_node_ips)}"
+#
+#   connection {
+#       type = "ssh"
+#       host = "${element(local.all_node_ips, count.index)}"
+#       user = "${var.ssh_user}"
+#       private_key = "${file(var.bastion_private_ssh_key)}"
+#       bastion_host = "${var.bastion_ip_address}"
+#       bastion_host_key = "${file(var.bastion_private_ssh_key)}"
+#   }
+#
+#   provisioner "file" {
+#     source      = "${path.module}/scripts/post_install_node.sh"
+#     destination = "/tmp/post_install_node.sh"
+#   }
+#
+#   provisioner "remote-exec" {
+#     inline = [
+#       "chmod u+x /tmp/post_install_node.sh",
+#       "sudo /tmp/post_install_node.sh"
+#     ]
+#   }
+#
+#   depends_on    = ["null_resource.deploy_cluster"]
+# }
