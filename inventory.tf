@@ -97,6 +97,8 @@ openshift_logging_es_nodeselector={"node-role.kubernetes.io/infra":"true"}
 openshift_logging_kibana_nodeselector={"node-role.kubernetes.io/infra": "true"}
 openshift_logging_curator_nodeselector={"node-role.kubernetes.io/infra": "true"}
 openshift_logging_es_cluster_size=${var.infra["nodes"]}
+openshift_logging_es_memory_limit=8Gi
+
 
 [masters]
 ${join("\n", formatlist("%v.%v",
