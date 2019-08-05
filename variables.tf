@@ -11,7 +11,10 @@ variable "master_hostname"    { type = "list" }
 variable "infra_hostname"     { type = "list" }
 variable "app_hostname"       { type = "list" }
 variable "storage_hostname"   { type = "list" }
-variable "haproxy_hostname"   { type = "list" }
+variable "haproxy_hostname"   {
+    type = "list"
+    default = []
+}
 
 variable "domain" {}
 
