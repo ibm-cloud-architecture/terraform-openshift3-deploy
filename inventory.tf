@@ -11,8 +11,8 @@ data "template_file" "ansible_inventory" {
 masters
 etcd
 nodes
-${var.haproxy["nodes"] != 0 ? "lb" : ""}
 ${var.storage["nodes"] == 0 ? "" : "glusterfs"}
+${var.haproxy["nodes"] != 0 ? "lb" : ""}
 
 [OSEv3:vars]
 ansible_ssh_user=${var.ssh_user}
