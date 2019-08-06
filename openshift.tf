@@ -150,7 +150,7 @@ resource "null_resource" "prerequisites" {
 
   provisioner "remote-exec" {
     inline = [
-        "ansible-playbook -i /tmp/inventory.cfg /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml",
+        "ansible-playbook -i ~/inventory.cfg /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml",
     ]
   }
 }
@@ -173,7 +173,7 @@ resource "null_resource" "deploy_cluster" {
 
   provisioner "remote-exec" {
     inline = [
-        "ansible-playbook -i /tmp/inventory.cfg /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml",
+        "ansible-playbook -i ~/inventory.cfg /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml",
     ]
   }
 }

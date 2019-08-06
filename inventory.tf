@@ -151,6 +151,6 @@ resource "null_resource" "copy_ansible_inventory" {
     provisioner "file" {
         when = "create"
         content     = "${data.template_file.ansible_inventory.rendered}"
-        destination = "/tmp/inventory.cfg"
+        destination = "~/inventory.cfg"
     }
 }
