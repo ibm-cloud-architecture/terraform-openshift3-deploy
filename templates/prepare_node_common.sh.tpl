@@ -16,8 +16,6 @@ subscription-manager repos \
     --enable="rhel-7-fast-datapath-rpms" \
     --enable="rh-gluster-3-client-for-rhel-7-server-rpms"
 
-atomic-openshift-excluder unexclude
-
 for config in /etc/sysconfig/network-scripts/ifcfg-e*; do
     sed -i -e '/NM_CONTROLLED=/d' $config
     echo "NM_CONTROLLED=yes" >> $config
