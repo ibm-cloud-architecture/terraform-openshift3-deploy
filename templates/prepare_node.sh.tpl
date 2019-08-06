@@ -25,6 +25,13 @@ sudo rm -rf /var/lib/docker/*
 sudo systemctl restart docker
 sudo systemctl is-active docker
 
+# hack: set hostname to fqdn, see https://access.redhat.com/solutions/3610211
+fqdn=`hostname -f`
+hostnamectl set-hostname $fqdn
+
+echo "hostname: `hostname`"
+echo "hostname -f: `hostname -f`"
+
 for config in /etc/sysconfig/network-scripts/ifcfg-e*; do
     sed -i -e '/NM_CONTROLLED=/d' $config
     echo "NM_CONTROLLED=yes" >> $config
