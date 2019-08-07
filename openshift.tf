@@ -104,7 +104,8 @@ resource "null_resource" "pre_install_cluster_bastion" {
   depends_on = [
     "null_resource.dependency",
     "null_resource.pre_install_node_common",
-    "null_resource.copy_ansible_inventory"
+    "null_resource.copy_ansible_inventory",
+    "null_resource.pre_install_cluster"
   ]
 
   connection {
