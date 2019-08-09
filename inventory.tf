@@ -35,7 +35,7 @@ oreg_auth_user=${var.image_registry_username}
 oreg_auth_password=${var.image_registry_password}
 oreg_test_login=false
 openshift_certificate_expiry_fail_on_warn=false
-openshift_docker_options='--selinux-enabled --insecure-registry 172.30.0.0/16 --log-driver=json-file --log-opt max-size=1M --log-opt max-file=3'
+openshift_docker_options='--selinux-enabled --insecure-registry ${var.service_network_cidr} --log-driver=json-file --log-opt max-size=1M --log-opt max-file=3'
 # master console
 openshift_master_cluster_method=native
 openshift_master_cluster_hostname=${var.master_cluster_hostname}
