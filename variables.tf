@@ -36,7 +36,10 @@ variable "ssh_user" {
 }
 
 variable "cloudprovider" {
-    default = "ibm"
+    type = "map"
+    default = {
+        kind = "ibm"
+    }
 }
 
 variable "bastion" { type = "map" }
@@ -45,6 +48,10 @@ variable "infra"   { type = "map" }
 variable "worker"  { type = "map" }
 variable "storage" { type = "map" }
 variable "haproxy" { type = "map" }
+
+variable "storageprovider" {
+    default = "glusterfs"
+}
 
 variable "ose_version" {
     default = "3.11"
@@ -95,3 +102,15 @@ variable "dependson" {
 }
 
 variable "bastion_hostname" {}
+
+
+# for azure storage provider, if needed
+# set in main.tf of your implementation module
+variable "azure_client_id"          { default = "" }
+variable "azure_client_secret"      { default = "" }
+variable "azure_subscription_id"    { default = "" }
+variable "azure_tenant_id"          { default = "" }
+variable "azure_resource_group"     { default = "" }
+variable "azure_location"           { default = "" }
+variable "azure_storage_account"    { default = "" }
+variable "azure_storage_accountkey" { default = "" }
