@@ -94,7 +94,7 @@ resource "null_resource" "pre_install_cluster" {
     provisioner "remote-exec" {
       inline = [
         "chmod +x /tmp/prepare_node.sh",
-        "chmod 600 ~/.ssh/id_rsa",
+        "test -e ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa",
         "sudo /tmp/prepare_node.sh",
       ]
     }
@@ -123,7 +123,7 @@ resource "null_resource" "pre_install_cluster_bastion" {
   provisioner "remote-exec" {
       inline = [
           "chmod +x /tmp/prepare_bastion.sh",
-          "chmod 600 ~/.ssh/id_rsa",
+          "test -e ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa",
           "sudo /tmp/prepare_bastion.sh",
       ]
   }
