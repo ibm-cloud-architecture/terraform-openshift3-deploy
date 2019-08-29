@@ -2,6 +2,8 @@
 variable "bastion_ip_address" {}
 variable "bastion_private_ssh_key" {}
 
+variable "node_count" {}
+
 variable "master_private_ip"  { type = "list" }
 variable "infra_private_ip"   { type = "list" }
 variable "app_private_ip"     { type = "list" }
@@ -27,16 +29,16 @@ variable "registry_volume_size" {
     default = "100"
 }
 
-variable "dnscerts" {
-    default = false
-}
 
 variable "ssh_user" {
     default = "root"
 }
 
 variable "cloudprovider" {
-    default = "ibm"
+    type = "map"
+    default = {
+        kind = "ibm"
+    }
 }
 
 variable "bastion" { type = "map" }
@@ -45,6 +47,10 @@ variable "infra"   { type = "map" }
 variable "worker"  { type = "map" }
 variable "storage" { type = "map" }
 variable "haproxy" { type = "map" }
+
+variable "storageprovider" {
+    default = "glusterfs"
+}
 
 variable "ose_version" {
     default = "3.11"
@@ -95,3 +101,39 @@ variable "dependson" {
 }
 
 variable "bastion_hostname" {}
+
+
+# for azure storage provider, if needed
+# set in main.tf of your implementation module
+variable "azure_client_id"          { default = "" }
+variable "azure_client_secret"      { default = "" }
+variable "azure_subscription_id"    { default = "" }
+variable "azure_tenant_id"          { default = "" }
+variable "azure_resource_group"     { default = "" }
+variable "azure_location"           { default = "" }
+variable "azure_storage_account"    { default = "" }
+variable "azure_storage_accountkey" { default = "" }
+
+variable "dnscerts" {
+  default = false
+}
+
+variable "master_cert" {
+  default = ""
+}
+
+variable "master_key" {
+  default = ""
+}
+
+variable "router_cert" {
+  default = ""
+}
+
+variable "router_key" {
+  default = ""
+}
+
+variable "router_ca_cert" {
+  default = ""
+}
