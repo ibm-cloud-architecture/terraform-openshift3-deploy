@@ -29,9 +29,8 @@ data "template_file" "prepare_node_sh" {
   }
 }
 
-
 resource "null_resource" "pre_install_node_common" {
-  count = "${length(local.all_node_ips_incl_bastion)}"
+  count = "${1 + var.node_count}"
 
   depends_on = [
     "null_resource.dependency"
@@ -65,7 +64,7 @@ resource "null_resource" "pre_install_node_common" {
 }
 
 resource "null_resource" "pre_install_cluster" {
-  count = "${length(local.all_node_ips)}"
+  count = "${var.node_count}"
 
   depends_on = [
     "null_resource.dependency",
@@ -129,6 +128,97 @@ resource "null_resource" "pre_install_cluster_bastion" {
   }
 }
 
+resource "null_resource" "write_master_cert" {
+  count = "${var.dnscerts != "" ? 1 : 0}"
+
+  connection {
+      type = "ssh"
+      host = "${var.bastion_ip_address}"
+      user = "${var.ssh_user}"
+      private_key = "${file(var.bastion_private_ssh_key)}"
+  }
+
+  provisioner "file" {
+    content = <<EOF
+${var.master_cert}
+EOF
+    destination = "~/master.crt"
+  }
+}
+
+resource "null_resource" "write_master_key" {
+  count = "${var.dnscerts ? 1 : 0}"
+
+  connection {
+      type = "ssh"
+      host = "${var.bastion_ip_address}"
+      user = "${var.ssh_user}"
+      private_key = "${file(var.bastion_private_ssh_key)}"
+  }
+
+  provisioner "file" {
+    content = <<EOF
+${var.master_key}
+EOF
+    destination = "~/master.key"
+  }
+}
+
+resource "null_resource" "write_router_cert" {
+  count = "${var.dnscerts ? 1 : 0}"
+
+  connection {
+      type = "ssh"
+      host = "${var.bastion_ip_address}"
+      user = "${var.ssh_user}"
+      private_key = "${file(var.bastion_private_ssh_key)}"
+  }
+
+  provisioner "file" {
+    content = <<EOF
+${var.router_cert}
+EOF
+    destination = "~/router.crt"
+  }
+}
+
+resource "null_resource" "write_router_key" {
+  count = "${var.dnscerts ? 1 : 0}"
+
+  connection {
+      type = "ssh"
+      host = "${var.bastion_ip_address}"
+      user = "${var.ssh_user}"
+      private_key = "${file(var.bastion_private_ssh_key)}"
+  }
+
+  provisioner "file" {
+    content = <<EOF
+${var.router_key}
+EOF
+    destination = "~/router.key"
+  }
+}
+
+# write out the letsencrypt CA
+resource "null_resource" "write_router_ca_cert" {
+  count = "${var.dnscerts ? 1 : 0}"
+
+  connection {
+      type = "ssh"
+      host = "${var.bastion_ip_address}"
+      user = "${var.ssh_user}"
+      private_key = "${file(var.bastion_private_ssh_key)}"
+  }
+
+  provisioner "file" {
+    content = <<EOF
+${var.router_ca_cert}
+EOF
+    destination = "~/router_ca.crt"
+  }
+}
+
 #################################################
 # Install Openshift
 #################################################
@@ -136,6 +226,11 @@ resource "null_resource" "prerequisites" {
   depends_on = [
     "null_resource.pre_install_cluster_bastion",
     "null_resource.pre_install_cluster",
+    "null_resource.write_master_cert",
+    "null_resource.write_master_key",
+    "null_resource.write_router_cert",
+    "null_resource.write_router_key",
+    "null_resource.write_router_ca_cert"
   ]
 
   triggers = {
