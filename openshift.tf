@@ -274,6 +274,28 @@ resource "null_resource" "deploy_cluster" {
   }
 }
 
+resource "null_resource" "create_cluster_admin" {
+    connection {
+      type = "ssh"
+      host = "${element(var.master_private_ip, 0)}"
+      user = "${var.ssh_user}"
+      private_key = "${file(var.bastion_private_ssh_key)}"
+      
+      bastion_host = "${var.bastion_ip_address}"
+      bastion_user = "${var.ssh_user}"
+      bastion_private_key = "${file(var.bastion_private_ssh_key)}"
+    }
+
+    provisioner "remote-exec" {
+        when = "create"
+        inline = [ 
+          "oc adm policy add-cluster-role-to-user cluster-admin admin"
+        ]
+    }
+
+    depends_on    = ["null_resource.deploy_cluster"]
+}
+
 #################################################
 # Perform post-install configurations for Openshift
 #################################################
