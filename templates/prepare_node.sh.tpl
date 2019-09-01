@@ -6,7 +6,7 @@ echo "Execute prepare_nodes.sh on $(hostname)"
 yum -y update
 yum install -y wget vim-enhanced net-tools bind-utils tmux git iptables-services bridge-utils docker etcd rpcbind
 
-echo "CONFIGURING DOCKER STORAGE"
+echo "CONFIGURING DOCKER STORAGE, DOCKER_DEVICE=${docker_block_dev}"
 
 cat <<EOF | sudo tee /etc/sysconfig/docker-storage-setup
 STORAGE_DRIVER=overlay2
@@ -24,14 +24,6 @@ sudo systemctl stop docker
 sudo rm -rf /var/lib/docker/*
 sudo systemctl restart docker
 sudo systemctl is-active docker
-
-# TODO: move to terraform-dns-etc-hosts module
-# hack: set hostname to fqdn, see https://access.redhat.com/solutions/3610211
-#fqdn=`hostname -f`
-#hostnamectl set-hostname $fqdn
-#
-#echo "hostname: `hostname`"
-#echo "hostname -f: `hostname -f`"
 
 for config in /etc/sysconfig/network-scripts/ifcfg-e*; do
     sed -i -e '/NM_CONTROLLED=/d' $config

@@ -1,9 +1,9 @@
-#--------------------------------#
-#--------------------------------#
 locals {
-    gluster_storage_devices = "\"${var.storage["gluster_disk_device"]}\""
+    gluster_storage_devices = "${join(",", formatlist("\"%v\"", var.gluster_block_devices))}"
 }
 
+#--------------------------------#
+#--------------------------------#
 # ansible inventory file
 data "template_file" "ansible_inventory" {
   template = <<EOF
@@ -11,8 +11,7 @@ data "template_file" "ansible_inventory" {
 masters
 etcd
 nodes
-glusterfs
-${var.haproxy["nodes"] != "0" ? "lb" : ""}
+${length(var.storage_hostname) > 0 ? "glusterfs" : ""}
 
 [OSEv3:vars]
 ansible_ssh_user=${var.ssh_user}
@@ -44,19 +43,19 @@ openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 
 openshift_master_htpasswd_users={'admin': '$apr1$qSzqkDd8$fU.yI4bV8KmXD9kreFSL//'}
 # if we're using oidc, and it uses a trusted cert, we can use the system truststore
 openshift_master_openid_ca_file=/etc/ssl/certs/ca-bundle.crt
-${var.dnscerts ? "openshift_master_named_certificates=[{'certfile': '~/master.crt', 'keyfile': '~/master.key', 'names': ['${var.cluster_public_hostname}']}]" : "" }
-${var.dnscerts ? "openshift_master_overwrite_named_certificates=true" : ""}
+${var.master_cert != "" ? "openshift_master_named_certificates=[{'certfile': '~/master.crt', 'keyfile': '~/master.key', 'names': ['${var.cluster_public_hostname}']}]" : "" }
+${var.master_cert != "" ? "openshift_master_overwrite_named_certificates=true" : ""}
 # router
 openshift_master_default_subdomain=${var.app_cluster_subdomain}
-${var.dnscerts ? "openshift_hosted_router_certificate={'certfile': '~/router.crt', 'keyfile': '~/router.key', 'cafile': '~/router_ca.crt'}" : ""}
+${var.router_cert != "" ? "openshift_hosted_router_certificate={'certfile': '~/router.crt', 'keyfile': '~/router.key', 'cafile': '~/router_ca.crt'}" : ""}
 # cluster console
 openshift_console_install=true
-${var.dnscerts ? "openshift_console_cert=~/router.crt" : ""}
-${var.dnscerts ? "openshift_console_key=~/router.key" : ""}
+${var.router_cert != "" ? "openshift_console_cert=~/router.crt" : ""}
+${var.router_key != "" ? "openshift_console_key=~/router.key" : ""}
 # registry certs
 openshift_hosted_registry_routehost=registry.${var.app_cluster_subdomain}
-${var.dnscerts ? "openshift_hosted_registry_routetermination=reencrypt" : ""}
-${var.dnscerts ? "openshift_hosted_registry_routecertificates={'certfile': '~/router.crt', 'keyfile': '~/router.key', 'cafile': '~/router_ca.crt'}" : "" }
+${var.router_cert != "" ? "openshift_hosted_registry_routetermination=reencrypt" : ""}
+${var.router_cert != "" ? "openshift_hosted_registry_routecertificates={'certfile': '~/router.crt', 'keyfile': '~/router.key', 'cafile': '~/router_ca.crt'}" : "" }
 openshift_hosted_registry_storage_kind=glusterfs
 openshift_hosted_registry_storage_volume_size=${var.registry_volume_size}Gi
 openshift_storage_glusterfs_block_deploy=true
@@ -95,27 +94,25 @@ openshift_logging_es_ops_nodeselector={"node-role.kubernetes.io/infra":"true"}
 openshift_logging_es_nodeselector={"node-role.kubernetes.io/infra":"true"}
 openshift_logging_kibana_nodeselector={"node-role.kubernetes.io/infra": "true"}
 openshift_logging_curator_nodeselector={"node-role.kubernetes.io/infra": "true"}
-openshift_logging_es_cluster_size=${var.infra["nodes"]}
+openshift_logging_es_cluster_size=${length(var.infra_hostname)}
 openshift_logging_es_memory_limit=8Gi
 openshift_logging_es_ops_memory_limit=8Gi
 
 [masters]
-${join("\n", formatlist("%v.%v",var.master_hostname, var.domain))}
+${join("\n", var.master_hostname)}
 
 [etcd]
-${join("\n", formatlist("%v.%v etcd_ip=%v",var.master_hostname, var.domain, var.master_private_ip))}
+${join("\n", formatlist("%v etcd_ip=%v",var.master_hostname, var.master_private_ip))}
 
-${var.storage["nodes"] == "0" ? "" : "[glusterfs]"}
-${var.storage["nodes"] == "0" ? "" : "${join("\n", formatlist("%v.%v glusterfs_devices='[ %v ]' openshift_node_group_name='node-config-compute'", var.storage_hostname, var.domain, local.gluster_storage_devices))}"}
+${length(var.storage_hostname) == 0 ? "" : "[glusterfs]"}
+${length(var.storage_hostname) == 0 ? "" : "${join("\n", formatlist("%v glusterfs_devices='[ %v ]' openshift_node_group_name='node-config-compute'", var.storage_hostname, local.gluster_storage_devices))}"}
 
 [nodes]
-${join("\n", formatlist("%v.%v openshift_node_group_name=\"node-config-master\"", var.master_hostname, var.domain))}
-${join("\n", formatlist("%v.%v openshift_node_group_name=\"node-config-infra\"", var.infra_hostname, var.domain))}
-${join("\n", formatlist("%v.%v openshift_node_group_name=\"node-config-compute\"", var.app_hostname, var.domain))}
-${var.storage["nodes"] == "0" ? "" : "${join("\n", formatlist("%v.%v openshift_schedulable=True openshift_node_group_name=\"node-config-compute\"", var.storage_hostname, var.domain))}"}
+${join("\n", formatlist("%v openshift_node_group_name=\"node-config-master\"", var.master_hostname))}
+${join("\n", formatlist("%v openshift_node_group_name=\"node-config-infra\"", var.infra_hostname))}
+${join("\n", formatlist("%v openshift_node_group_name=\"node-config-compute\"", var.worker_hostname))}
+${join("\n", formatlist("%v openshift_schedulable=True openshift_node_group_name=\"node-config-compute\"", var.storage_hostname))}
 
-${var.haproxy["nodes"] != "0" ? "[lb]" : ""}
-${var.haproxy["nodes"] != "0" ? "${join("\n", formatlist("%v.%v", var.haproxy_hostname, var.domain))}" : ""}
 EOF
 }
 
@@ -156,19 +153,19 @@ openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 
 openshift_master_htpasswd_users={'admin': '$apr1$qSzqkDd8$fU.yI4bV8KmXD9kreFSL//'}
 # if we're using oidc, and it uses a trusted cert, we can use the system truststore
 openshift_master_openid_ca_file=/etc/ssl/certs/ca-bundle.crt
-${var.dnscerts ? "openshift_master_named_certificates=[{'certfile': '~/master.crt', 'keyfile': '~/master.key', 'names': ['${var.cluster_public_hostname}']}]" : "" }
-${var.dnscerts ? "openshift_master_overwrite_named_certificates=true" : ""}
+${var.master_cert != "" ? "openshift_master_named_certificates=[{'certfile': '~/master.crt', 'keyfile': '~/master.key', 'names': ['${var.cluster_public_hostname}']}]" : "" }
+${var.master_cert != "" ? "openshift_master_overwrite_named_certificates=true" : ""}
 # router
 openshift_master_default_subdomain=${var.app_cluster_subdomain}
-${var.dnscerts ? "openshift_hosted_router_certificate={'certfile': '~/router.crt', 'keyfile': '~/router.key', 'cafile': '~/router_ca.crt'}" : ""}
+${var.router_cert != "" ? "openshift_hosted_router_certificate={'certfile': '~/router.crt', 'keyfile': '~/router.key', 'cafile': '~/router_ca.crt'}" : ""}
 # cluster console
 openshift_console_install=true
-${var.dnscerts ? "openshift_console_cert=~/router.crt" : ""}
-${var.dnscerts ? "openshift_console_key=~/router.key" : ""}
+${var.router_cert != "" ? "openshift_console_cert=~/router.crt" : ""}
+${var.router_key != "" ? "openshift_console_key=~/router.key" : ""}
 # registry certs
 openshift_hosted_registry_routehost=registry.${var.app_cluster_subdomain}
-${var.dnscerts ? "openshift_hosted_registry_routetermination=reencrypt" : ""}
-${var.dnscerts ? "openshift_hosted_registry_routecertificates={'certfile': '~/router.crt', 'keyfile': '~/router.key', 'cafile': '~/router_ca.crt'}" : "" }
+${var.router_cert != "" ? "openshift_hosted_registry_routetermination=reencrypt" : ""}
+${var.router_key != "" ? "openshift_hosted_registry_routecertificates={'certfile': '~/router.crt', 'keyfile': '~/router.key', 'cafile': '~/router_ca.crt'}" : "" }
 
 openshift_cloudprovider_kind=azure
 openshift_cloudprovider_azure_client_id=${var.azure_client_id}
@@ -212,7 +209,7 @@ openshift_logging_es_ops_nodeselector={"node-role.kubernetes.io/infra":"true"}
 openshift_logging_es_nodeselector={"node-role.kubernetes.io/infra":"true"}
 openshift_logging_kibana_nodeselector={"node-role.kubernetes.io/infra": "true"}
 openshift_logging_curator_nodeselector={"node-role.kubernetes.io/infra": "true"}
-openshift_logging_es_cluster_size=${var.infra["nodes"]}
+openshift_logging_es_cluster_size=${length(var.infra_hostname)}
 openshift_logging_es_memory_limit=8Gi
 openshift_logging_es_ops_memory_limit=8Gi
 
@@ -226,7 +223,7 @@ ${join("\n", formatlist("%v etcd_ip=%v",var.master_hostname, var.master_private_
 [nodes]
 ${join("\n", formatlist("%v openshift_node_group_name=\"node-config-master\"", var.master_hostname))}
 ${join("\n", formatlist("%v openshift_node_group_name=\"node-config-infra\"", var.infra_hostname))}
-${join("\n", formatlist("%v openshift_node_group_name=\"node-config-compute\"", var.app_hostname))}
+${join("\n", formatlist("%v openshift_node_group_name=\"node-config-compute\"", var.worker_hostname))}
 EOF
 }
 
@@ -241,10 +238,11 @@ resource "null_resource" "copy_ansible_inventory" {
     }
 
     connection {
-        type = "ssh"
-        host = "${var.bastion_ip_address}"
-        user = "${var.ssh_user}"
-        private_key = "${file(var.bastion_private_ssh_key)}"
+        type        = "ssh"
+        host        = "${var.bastion_ip_address}"
+        user        = "${var.bastion_ssh_user}"
+        password    = "${var.bastion_ssh_password}"
+        private_key = "${var.bastion_ssh_private_key}"
     }
 
     provisioner "file" {
@@ -261,10 +259,11 @@ resource "null_resource" "copy_ansible_inventory_azure" {
     }
 
     connection {
-        type = "ssh"
-        host = "${var.bastion_ip_address}"
-        user = "${var.ssh_user}"
-        private_key = "${file(var.bastion_private_ssh_key)}"
+        type        = "ssh"
+        host        = "${var.bastion_ip_address}"
+        user        = "${var.bastion_ssh_user}"
+        password    = "${var.bastion_ssh_password}"
+        private_key = "${var.bastion_ssh_private_key}"
     }
 
     provisioner "file" {

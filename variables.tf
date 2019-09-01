@@ -1,24 +1,42 @@
+variable "bastion_ip_address" {
+  default = ""
+}
+variable "bastion_ssh_user" {
+  default = ""
+}
 
-variable "bastion_ip_address" {}
-variable "bastion_private_ssh_key" {}
+variable "bastion_ssh_password" {
+  default = ""
+}
+variable "bastion_ssh_private_key" {
+  default = ""
+}
 
-variable "node_count" {}
+variable "ssh_user" {
+  default = "root"
+}
+
+variable "ssh_private_key" {
+  default = ""
+}
+
+variable "ssh_password" {
+  default = ""
+}
+
+variable "node_count" {
+  default = 0
+}
 
 variable "master_private_ip"  { type = "list" }
 variable "infra_private_ip"   { type = "list" }
-variable "app_private_ip"     { type = "list" }
+variable "worker_private_ip"  { type = "list" }
 variable "storage_private_ip" { type = "list" }
 
 variable "master_hostname"    { type = "list" }
 variable "infra_hostname"     { type = "list" }
-variable "app_hostname"       { type = "list" }
+variable "worker_hostname"    { type = "list" }
 variable "storage_hostname"   { type = "list" }
-variable "haproxy_hostname"   {
-    type = "list"
-    default = []
-}
-
-variable "domain" {}
 
 variable "openshift_identity_provider" {
     # admin/admin
@@ -29,11 +47,6 @@ variable "registry_volume_size" {
     default = "100"
 }
 
-
-variable "ssh_user" {
-    default = "root"
-}
-
 variable "cloudprovider" {
     type = "map"
     default = {
@@ -41,12 +54,14 @@ variable "cloudprovider" {
     }
 }
 
-variable "bastion" { type = "map" }
-variable "master"  { type = "map" }
-variable "infra"   { type = "map" }
-variable "worker"  { type = "map" }
-variable "storage" { type = "map" }
-variable "haproxy" { type = "map" }
+variable "docker_block_device" {
+  description = "block device for docker, e.g. /dev/sdb" 
+}
+
+variable "gluster_block_devices" {
+  type = "list"
+  description = "list of block devices for glusterfs, e.g. /dev/sdc"
+}
 
 variable "storageprovider" {
     default = "glusterfs"
@@ -63,7 +78,6 @@ variable "openshift_version" {
 variable "ansible_version" {
     default = "2.6"
 }
-
 
 variable "ose_deployment_type" {
     default = "openshift-enterprise"
@@ -100,9 +114,6 @@ variable "dependson" {
     default = []
 }
 
-variable "bastion_hostname" {}
-
-
 # for azure storage provider, if needed
 # set in main.tf of your implementation module
 variable "azure_client_id"          { default = "" }
@@ -113,10 +124,6 @@ variable "azure_resource_group"     { default = "" }
 variable "azure_location"           { default = "" }
 variable "azure_storage_account"    { default = "" }
 variable "azure_storage_accountkey" { default = "" }
-
-variable "dnscerts" {
-  default = false
-}
 
 variable "master_cert" {
   default = ""
