@@ -1,6 +1,6 @@
 locals {
-  all_node_ips = "${concat(var.master_private_ip, var.infra_private_ip, var.app_private_ip, var.storage_private_ip)}"
-  all_node_ips_incl_bastion = "${concat(list(var.bastion_ip_address), var.master_private_ip, var.infra_private_ip, var.app_private_ip, var.storage_private_ip)}"
+  all_node_ips = "${concat(var.master_private_ip, var.infra_private_ip, var.worker_private_ip, var.storage_private_ip)}"
+  all_node_ips_incl_bastion = "${concat(list(var.bastion_ip_address), var.master_private_ip, var.infra_private_ip, var.worker_private_ip, var.storage_private_ip)}"
 }
 
 resource "null_resource" "dependency" {
@@ -25,7 +25,7 @@ data "template_file" "prepare_node_sh" {
   template = "${file("${path.module}/templates/prepare_node.sh.tpl")}"
 
   vars = {
-    docker_block_dev = "${var.master["docker_disk_device"]}"
+    docker_block_dev = "${var.docker_block_device}"
   }
 }
 
@@ -44,10 +44,15 @@ resource "null_resource" "pre_install_node_common" {
   connection {
     type = "ssh"
     host = "${element(local.all_node_ips_incl_bastion, count.index)}"
-    user = "${var.ssh_user}"
-    private_key = "${file(var.bastion_private_ssh_key)}"
-    bastion_host = "${var.bastion_ip_address}"
-    bastion_host_key = "${file(var.bastion_private_ssh_key)}"
+
+    user        = "${var.ssh_user}"
+    password    = "${var.ssh_password}"
+    private_key = "${var.ssh_private_key}"
+
+    bastion_host        = "${var.bastion_ip_address}"
+    bastion_user        = "${var.bastion_ssh_user}"
+    bastion_password    = "${var.bastion_ssh_password}"
+    bastion_private_key = "${var.bastion_ssh_private_key}"
   }
 
   provisioner "file" {
@@ -58,7 +63,8 @@ resource "null_resource" "pre_install_node_common" {
   provisioner "remote-exec" {
     inline = [
         "chmod +x /tmp/prepare_node_common.sh",
-        "sudo /tmp/prepare_node_common.sh"
+        "sudo /tmp/prepare_node_common.sh",
+        "rm -f /tmp/prepare_node_common.sh"
     ]
   }
 }
@@ -78,11 +84,15 @@ resource "null_resource" "pre_install_cluster" {
   connection {
     type = "ssh"
     host = "${element(local.all_node_ips, count.index)}"
-    user = "${var.ssh_user}"
-    private_key = "${file(var.bastion_private_ssh_key)}"
-    bastion_host = "${var.bastion_ip_address}"
-    bastion_host_key = "${file(var.bastion_private_ssh_key)}"
+    
+    user        = "${var.ssh_user}"
+    password    = "${var.ssh_password}"
+    private_key = "${var.ssh_private_key}"
 
+    bastion_host        = "${var.bastion_ip_address}"
+    bastion_user        = "${var.bastion_ssh_user}"
+    bastion_password    = "${var.bastion_ssh_password}"
+    bastion_private_key = "${var.bastion_ssh_private_key}"
   }
 
   provisioner "file" {
@@ -95,6 +105,7 @@ resource "null_resource" "pre_install_cluster" {
         "chmod +x /tmp/prepare_node.sh",
         "test -e ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa",
         "sudo /tmp/prepare_node.sh",
+        "rm -f /tmp/prepare_node.sh"
       ]
     }
 }
@@ -108,10 +119,13 @@ resource "null_resource" "pre_install_cluster_bastion" {
   ]
 
   connection {
-      type = "ssh"
-      host = "${var.bastion_ip_address}"
-      user = "${var.ssh_user}"
-      private_key = "${file(var.bastion_private_ssh_key)}"
+    type = "ssh"
+
+    host        = "${var.bastion_ip_address}"
+    user        = "${var.bastion_ssh_user}"
+    password    = "${var.bastion_ssh_password}"
+    private_key = "${var.bastion_ssh_private_key}"
+
   }
 
   provisioner "file" {
@@ -124,18 +138,22 @@ resource "null_resource" "pre_install_cluster_bastion" {
           "chmod +x /tmp/prepare_bastion.sh",
           "test -e ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa",
           "sudo /tmp/prepare_bastion.sh",
+          "rm -f /tmp/prepare_bastion.sh"
       ]
   }
 }
 
 resource "null_resource" "write_master_cert" {
-  count = "${var.dnscerts != "" ? 1 : 0}"
+  count = "${var.master_cert != "" ? 1 : 0}"
 
   connection {
-      type = "ssh"
-      host = "${var.bastion_ip_address}"
-      user = "${var.ssh_user}"
-      private_key = "${file(var.bastion_private_ssh_key)}"
+    type = "ssh"
+    
+    host        = "${var.bastion_ip_address}"
+    user        = "${var.bastion_ssh_user}"
+    password    = "${var.bastion_ssh_password}"
+    private_key = "${var.bastion_ssh_private_key}"
+
   }
 
   provisioner "file" {
@@ -147,13 +165,16 @@ EOF
 }
 
 resource "null_resource" "write_master_key" {
-  count = "${var.dnscerts ? 1 : 0}"
+  count = "${var.master_key != "" ? 1 : 0}"
 
   connection {
-      type = "ssh"
-      host = "${var.bastion_ip_address}"
-      user = "${var.ssh_user}"
-      private_key = "${file(var.bastion_private_ssh_key)}"
+    type = "ssh"
+
+    host        = "${var.bastion_ip_address}"
+    user        = "${var.bastion_ssh_user}"
+    password    = "${var.bastion_ssh_password}"
+    private_key = "${var.bastion_ssh_private_key}"
+
   }
 
   provisioner "file" {
@@ -165,13 +186,16 @@ EOF
 }
 
 resource "null_resource" "write_router_cert" {
-  count = "${var.dnscerts ? 1 : 0}"
+  count = "${var.router_cert != "" ? 1 : 0}"
 
   connection {
-      type = "ssh"
-      host = "${var.bastion_ip_address}"
-      user = "${var.ssh_user}"
-      private_key = "${file(var.bastion_private_ssh_key)}"
+    type = "ssh"
+    
+    host        = "${var.bastion_ip_address}"
+    user        = "${var.bastion_ssh_user}"
+    password    = "${var.bastion_ssh_password}"
+    private_key = "${var.bastion_ssh_private_key}"
+
   }
 
   provisioner "file" {
@@ -183,13 +207,16 @@ EOF
 }
 
 resource "null_resource" "write_router_key" {
-  count = "${var.dnscerts ? 1 : 0}"
+  count = "${var.router_key != "" ? 1 : 0}"
 
   connection {
-      type = "ssh"
-      host = "${var.bastion_ip_address}"
-      user = "${var.ssh_user}"
-      private_key = "${file(var.bastion_private_ssh_key)}"
+    type = "ssh"
+    
+    host        = "${var.bastion_ip_address}"
+    user        = "${var.bastion_ssh_user}"
+    password    = "${var.bastion_ssh_password}"
+    private_key = "${var.bastion_ssh_private_key}"
+
   }
 
   provisioner "file" {
@@ -202,14 +229,18 @@ EOF
 
 # write out the letsencrypt CA
 resource "null_resource" "write_router_ca_cert" {
-  count = "${var.dnscerts ? 1 : 0}"
+  count = "${var.router_ca_cert != "" ? 1 : 0}"
 
   connection {
-      type = "ssh"
-      host = "${var.bastion_ip_address}"
-      user = "${var.ssh_user}"
-      private_key = "${file(var.bastion_private_ssh_key)}"
+    type = "ssh"
+    
+    host        = "${var.bastion_ip_address}"
+    user        = "${var.bastion_ssh_user}"
+    password    = "${var.bastion_ssh_password}"
+    private_key = "${var.bastion_ssh_private_key}"
+
   }
+
 
   provisioner "file" {
     content = <<EOF
@@ -238,11 +269,15 @@ resource "null_resource" "prerequisites" {
   }
 
   connection {
-    type     = "ssh"
-    host = "${var.bastion_ip_address}"
-    user = "${var.ssh_user}"
-    private_key = "${file(var.bastion_private_ssh_key)}"
+    type = "ssh"
+    
+    host        = "${var.bastion_ip_address}"
+    user        = "${var.bastion_ssh_user}"
+    password    = "${var.bastion_ssh_password}"
+    private_key = "${var.bastion_ssh_private_key}"
   }
+
+
 
   provisioner "remote-exec" {
     inline = [
@@ -261,10 +296,12 @@ resource "null_resource" "deploy_cluster" {
   }
 
   connection {
-    type     = "ssh"
-    host = "${var.bastion_ip_address}"
-    user = "${var.ssh_user}"
-    private_key = "${file(var.bastion_private_ssh_key)}"
+    type = "ssh"
+    
+    host        = "${var.bastion_ip_address}"
+    user        = "${var.bastion_ssh_user}"
+    password    = "${var.bastion_ssh_password}"
+    private_key = "${var.bastion_ssh_private_key}"
   }
 
   provisioner "remote-exec" {
@@ -279,11 +316,12 @@ resource "null_resource" "create_cluster_admin" {
       type = "ssh"
       host = "${element(var.master_private_ip, 0)}"
       user = "${var.ssh_user}"
-      private_key = "${file(var.bastion_private_ssh_key)}"
+      private_key = "${var.ssh_private_key}"
       
-      bastion_host = "${var.bastion_ip_address}"
-      bastion_user = "${var.ssh_user}"
-      bastion_private_key = "${file(var.bastion_private_ssh_key)}"
+      bastion_host        = "${var.bastion_ip_address}"
+      bastion_user        = "${var.bastion_ssh_user}"
+      bastion_password    = "${var.bastion_ssh_password}"
+      bastion_private_key = "${var.bastion_ssh_private_key}"
     }
 
     provisioner "remote-exec" {
