@@ -8,20 +8,24 @@ Here is an example usage.  Normally we provision infrastructure first before exe
 module "openshift" {
   source = "github.com/ibm-cloud-architecture/terraform-openshift-deploy"
 
-  # set this array for outputs from other resources in order to prevent installation until these are known.  For example, we set this to register with RHN before we start installation.
+  # set this array for outputs from other resources in order to prevent 
+  # installation until these are known.  For example, we set this to 
+  # register with RHN before we start installation.
   dependson = [
     "${module.rhnregister.registered_resource}"
   ]
 
-  # cluster nodes
-  node_count              = "<total number of cluster nodes>"   # don't including bastion/control host
+  # don't include bastion/control host in this count
+  node_count              = "<total number of cluster nodes>"   
 
+  # cluster nodes
   master_private_ip       = ["<master1>", "<master2>", "<master3>"]
   infra_private_ip        = ["<infra1>", "<infra2>", "<infra3>"]
   worker_private_ip       = ["<worker1>", "<worker2>", "<worker3>"]
   storage_private_ip      = ["<storage1>", "<storage2>", "<storage3>"]
 
-  # use FQDNs, all names need to be resolvable from all cluster nodes including bastion/control host
+  # use FQDNs, all names need to be resolvable from all cluster nodes including 
+  # from the bastion/control host
   master_hostname         = ["master1.example.com", "master2.example.com", "master3.example.com"] 
   infra_hostname          = ["infra1.example.com", "infra2.example.com", "infra3.example.com"] 
   worker_hostname         = ["worker1.example.com", "worker2.example.com", "worker3.example.com"] 
@@ -33,7 +37,9 @@ module "openshift" {
   # storage nodes block devices, in VMware it's /dev/sdc
   gluster_block_devices   = ["/dev/sdc"]
 
-  # bastion/control host connection parameters.  the openshift ansible playbooks are run from here, we expect passwordless ssh to be set up from bastion host to all cluster nodes
+  # bastion/control host connection parameters.  the openshift ansible playbooks
+  # are run from here, we expect passwordless ssh to be set up from bastion host
+  # to all cluster nodes
   bastion_ip_address      = "<bastion public ip>"
   bastion_ssh_user        = "<ssh user>"
   bastion_ssh_private_key = "<ssh private key>"
@@ -59,7 +65,8 @@ module "openshift" {
   # public endpoint for console - must be in DNS and resolvable by clients
   cluster_public_hostname = "external-console.my-domain.com"
 
-  # public endpoint for app route - wildcard domain that must be in DNS and resolvable by clients
+  # public endpoint for app route - wildcard domain that must be in DNS and resolvable 
+  # by clients
   app_cluster_subdomain   = "my-apps.my-domain.com"
 
   # size of persistent volume used to back image registry storage
@@ -69,7 +76,8 @@ module "openshift" {
   pod_network_cidr        = "10.128.0.0/16"
   service_network_cidr    = "10.129.0.0/24"
 
-  # controls size of pod subnet assigned to each cluster node -- 9 means 2^9 = 512 pod addresses per node
+  # controls size of pod subnet assigned to each cluster node -- 9 means 2^9 = 512 pod 
+  # addresses per node
   host_subnet_length      = "9"
 
   # user-provided certs for console - CN or SAN must contain "<cluster_public_hostname>"
