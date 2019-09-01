@@ -59,14 +59,16 @@ module "openshift" {
   image_registry_username = "<user for registry.redhat.io>"
   image_registry_password = "<password for registry.redhat.io>"
 
-  # internal API endpoint - must be resolvable from all cluster nodes
+  # internal API endpoint - must be resolvable from all cluster nodes, a load balancer
+  # in front of the master nodes in the cluster
   master_cluster_hostname = "internal-api.example.com"
 
-  # public endpoint for console - must be in DNS and resolvable by clients
+  # public endpoint for console - must be in DNS and resolvable by clients, a load
+  # balancer in front of the master nodes in the cluster
   cluster_public_hostname = "external-console.my-domain.com"
 
   # public endpoint for app route - wildcard domain that must be in DNS and resolvable 
-  # by clients
+  # by clients, a load balancer address for the infra nodes in the cluster
   app_cluster_subdomain   = "my-apps.my-domain.com"
 
   # size of persistent volume used to back image registry storage
