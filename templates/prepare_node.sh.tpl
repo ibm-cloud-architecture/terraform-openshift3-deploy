@@ -17,11 +17,13 @@ CONTAINER_ROOT_LV_MOUNT_PATH=/var/lib/docker
 VG=dockervg
 EOF
 
-sudo docker-storage-setup
-
+# stopping docker and cleaning file system before reconfiguring it
 sudo systemctl enable docker
 sudo systemctl stop docker
 sudo rm -rf /var/lib/docker/*
+
+sudo docker-storage-setup
+
 sudo systemctl restart docker
 sudo systemctl is-active docker
 
