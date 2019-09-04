@@ -227,7 +227,69 @@ ${join("\n", formatlist("%v openshift_node_group_name=\"node-config-compute\"", 
 EOF
 }
 
+data "template_file" "ansible_inventory_ceph" {
+    template = <<EOF
+[OSEv3:children]
+masters
+etcd
+nodes
 
+[OSEv3:vars]
+ansible_ssh_user=${var.ssh_user}
+${var.ssh_user == "root" ? "" : "ansible_become=true"}
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+openshift_deployment_type=${var.ose_deployment_type}
+openshift_release=v${var.openshift_version}
+containerized=true
+openshift_use_crio=false
+os_sdn_network_plugin_name=redhat/openshift-ovs-networkpolicy
+osm_cluster_network_cidr=${var.pod_network_cidr}
+openshift_portal_net=${var.service_network_cidr}
+osm_host_subnet_length=${var.host_subnet_length}
+openshift_master_api_port=443
+openshift_master_console_port=443
+os_firewall_use_firewalld=true
+# disable docker_storage check on non-rhel since the python-docker library cannot connect to docker for some reason
+openshift_disable_check=docker_storage,docker_image_availability,package_version
+oreg_auth_user=${var.image_registry_username}
+oreg_auth_password=${var.image_registry_password}
+oreg_test_login=false
+openshift_certificate_expiry_fail_on_warn=false
+openshift_docker_options='--selinux-enabled --insecure-registry ${var.service_network_cidr} --log-driver=json-file --log-opt max-size=1M --log-opt max-file=3'
+# master console
+openshift_master_cluster_method=native
+openshift_master_cluster_hostname=${var.master_cluster_hostname}
+openshift_master_cluster_public_hostname=${var.cluster_public_hostname}
+openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider'}]
+openshift_master_htpasswd_users={'admin': '$apr1$qSzqkDd8$fU.yI4bV8KmXD9kreFSL//'}
+# if we're using oidc, and it uses a trusted cert, we can use the system truststore
+openshift_master_openid_ca_file=/etc/ssl/certs/ca-bundle.crt
+${var.master_cert != "" ? "openshift_master_named_certificates=[{'certfile': '~/master.crt', 'keyfile': '~/master.key', 'names': ['${var.cluster_public_hostname}']}]" : "" }
+${var.master_cert != "" ? "openshift_master_overwrite_named_certificates=true" : ""}
+# router
+openshift_master_default_subdomain=${var.app_cluster_subdomain}
+${var.router_cert != "" ? "openshift_hosted_router_certificate={'certfile': '~/router.crt', 'keyfile': '~/router.key', 'cafile': '~/router_ca.crt'}" : ""}
+# cluster console
+openshift_console_install=true
+${var.router_cert != "" ? "openshift_console_cert=~/router.crt" : ""}
+${var.router_key != "" ? "openshift_console_key=~/router.key" : ""}
+# registry certs
+openshift_hosted_registry_routehost=registry.${var.app_cluster_subdomain}
+${var.router_cert != "" ? "openshift_hosted_registry_routetermination=reencrypt" : ""}
+${var.router_key != "" ? "openshift_hosted_registry_routecertificates={'certfile': '~/router.crt', 'keyfile': '~/router.key', 'cafile': '~/router_ca.crt'}" : "" }
+
+[masters]
+${join("\n", formatlist("%v",var.master_hostname))}
+
+[etcd]
+${join("\n", formatlist("%v etcd_ip=%v",var.master_hostname, var.master_private_ip))}
+
+[nodes]
+${join("\n", formatlist("%v openshift_node_group_name=\"node-config-master\"", var.master_hostname))}
+${join("\n", formatlist("%v openshift_node_group_name=\"node-config-infra\"", var.infra_hostname))}
+${join("\n", formatlist("%v openshift_node_group_name=\"node-config-compute\"", var.worker_hostname))}
+EOF
+}
 #--------------------------------#
 #--------------------------------#
 
@@ -269,6 +331,27 @@ resource "null_resource" "copy_ansible_inventory_azure" {
     provisioner "file" {
         when = "create"
         content     = "${data.template_file.ansible_inventory_azure.rendered}"
+        destination = "~/inventory.cfg"
+    }
+}
+
+resource "null_resource" "copy_ansible_inventory_ceph" {
+    count = "${var.storageprovider == "ceph" ? 1 : 0}"
+    triggers = {
+        inventory = "${data.template_file.ansible_inventory_ceph.rendered}"
+    }
+
+    connection {
+        type        = "ssh"
+        host        = "${var.bastion_ip_address}"
+        user        = "${var.bastion_ssh_user}"
+        password    = "${var.bastion_ssh_password}"
+        private_key = "${var.bastion_ssh_private_key}"
+    }
+
+    provisioner "file" {
+        when = "create"
+        content     = "${data.template_file.ansible_inventory_ceph.rendered}"
         destination = "~/inventory.cfg"
     }
 }
