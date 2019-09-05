@@ -28,6 +28,23 @@ variable "node_count" {
   default = 0
 }
 
+variable "master_count" {
+  default = 0
+}
+
+variable "infra_count" {
+  default = 0
+}
+
+variable "worker_count" {
+  default = 0
+}
+
+variable "storage_count" {
+  default = 0
+}
+
+
 variable "master_private_ip"  { type = "list" }
 variable "infra_private_ip"   { type = "list" }
 variable "worker_private_ip"  { type = "list" }
@@ -63,9 +80,14 @@ variable "gluster_block_devices" {
   description = "list of block devices for glusterfs, e.g. /dev/sdc"
 }
 
-variable "storageprovider" {
+variable "storageclass_file" {
     default = "glusterfs"
 }
+
+variable "storageclass_block" {
+    default = "glusterfs-block"
+}
+
 
 variable "ose_version" {
     default = "3.11"
@@ -143,4 +165,30 @@ variable "router_key" {
 
 variable "router_ca_cert" {
   default = ""
+}
+
+variable "enable_monitoring" {
+  default = false
+}
+
+variable "enable_logging" {
+  default = false
+}
+
+variable "enable_metrics" {
+  default = false
+}
+
+variable "custom_inventory" {
+  type = "list"
+  default = []
+}
+
+variable "openshift_admin_user" {
+  default = "admin"
+}
+
+variable "openshift_admin_htpasswd" {
+  description = "generate me with htpasswd util, default is \"admin\""
+  default = "$apr1$qSzqkDd8$fU.yI4bV8KmXD9kreFSL//"
 }

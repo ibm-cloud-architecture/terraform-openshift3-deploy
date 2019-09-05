@@ -327,7 +327,7 @@ resource "null_resource" "create_cluster_admin" {
     provisioner "remote-exec" {
         when = "create"
         inline = [ 
-          "oc adm policy add-cluster-role-to-user cluster-admin admin"
+          "oc adm policy add-cluster-role-to-user cluster-admin ${var.openshift_admin_user}"
         ]
     }
 
