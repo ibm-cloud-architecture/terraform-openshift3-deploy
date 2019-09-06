@@ -192,3 +192,7 @@ variable "openshift_admin_htpasswd" {
   description = "generate me with htpasswd util, default is \"admin\""
   default = "$apr1$qSzqkDd8$fU.yI4bV8KmXD9kreFSL//"
 }
+
+variable "registry_storage_kind" {
+  default = ""
+}

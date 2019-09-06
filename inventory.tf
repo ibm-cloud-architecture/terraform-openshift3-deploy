@@ -1,6 +1,7 @@
 locals {
     gluster_storage_devices = "${join(",", formatlist("\"%v\"", var.gluster_block_devices))}"
-
+    registry_storage_kind = "${var.registry_storage_kind != "" ? var.registry_storage_kind : 
+      (var.storage_count > 0 ? "gluster" : "")}"
 }
 
 data "template_file" "ansible_inventory_base" {
@@ -50,7 +51,7 @@ openshift_console_install=true
 openshift_master_default_subdomain=${var.app_cluster_subdomain}
 
 # registry
-openshift_hosted_registry_storage_kind=${var.storageclass_file}
+openshift_hosted_registry_storage_kind=${local.registry_storage_kind}
 openshift_hosted_registry_storage_volume_size=${var.registry_volume_size}Gi
 EOF
 }
@@ -73,18 +74,15 @@ openshift_console_cert=~/router.crt
 openshift_console_key=~/router.key
 
 # registry certs
-openshift_hosted_registry_routehost=registry.${var.app_cluster_subdomain}
-openshift_hosted_registry_routetermination=reencrypt
 openshift_hosted_registry_routecertificates={'certfile': '~/router.crt', 'keyfile': '~/router.key', 'cafile': '~/router_ca.crt'}
 
 EOF
 }
 
 data "template_file" "ansible_inventory_logging" {
-   count = "${var.enable_logging ? 1 : 0}"
    template = <<EOF
 # logging
-openshift_logging_install_logging=true
+openshift_logging_install_logging="${var.enable_logging}"
 openshift_logging_es_pvc_dynamic=true
 openshift_logging_es_pvc_storage_class_name=${var.storageclass_block}
 openshift_logging_es_pvc_size=20Gi
@@ -100,10 +98,9 @@ EOF
 }
 
 data "template_file" "ansible_inventory_monitoring" {
-   count = "${var.enable_monitoring ? 1 : 0}"
    template = <<EOF
 # monitoring
-openshift_cluster_monitoring_operator_install=true
+openshift_cluster_monitoring_operator_install="${var.enable_monitoring}"
 openshift_cluster_monitoring_operator_prometheus_storage_enabled=true
 openshift_cluster_monitoring_operator_prometheus_storage_class_name=${var.storageclass_block}
 openshift_cluster_monitoring_operator_alertmanager_storage_enabled=true
@@ -114,10 +111,9 @@ EOF
 }
 
 data "template_file" "ansible_inventory_metrics" {
-   count = "${var.enable_metrics ? 1 : 0}"
    template = <<EOF
 # metrics
-openshift_metrics_install_metrics=true
+openshift_metrics_install_metrics="${var.enable_metrics}"
 openshift_metrics_cassandra_storage_type=dynamic
 openshift_metrics_cassandra_pvc_storage_class_name=${var.storageclass_block}
 openshift_metrics_hawkular_nodeselector={"node-role.kubernetes.io/infra": "true"}
@@ -173,9 +169,9 @@ data "template_file" "ansible_inventory" {
 ${data.template_file.ansible_inventory_base.rendered}
 ${join("\n", data.template_file.ansible_inventory_master_certs.*.rendered)}
 ${join("\n", data.template_file.ansible_inventory_router_certs.*.rendered)}
-${join("\n", data.template_file.ansible_inventory_monitoring.*.rendered)}
-${join("\n", data.template_file.ansible_inventory_logging.*.rendered)}
-${join("\n", data.template_file.ansible_inventory_metrics.*.rendered)}
+${data.template_file.ansible_inventory_monitoring.rendered}
+${data.template_file.ansible_inventory_logging.rendered}
+${data.template_file.ansible_inventory_metrics.rendered}
 ${join("\n", data.template_file.ansible_inventory_storage_gluster.*.rendered)}
 ${join("\n", var.custom_inventory)}
 ${data.template_file.ansible_inventory_nodes.rendered}

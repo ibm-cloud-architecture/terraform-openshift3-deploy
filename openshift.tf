@@ -261,7 +261,8 @@ resource "null_resource" "prerequisites" {
     "null_resource.write_master_key",
     "null_resource.write_router_cert",
     "null_resource.write_router_key",
-    "null_resource.write_router_ca_cert"
+    "null_resource.write_router_ca_cert",
+    "null_resource.copy_ansible_inventory"
   ]
 
   triggers = {
