@@ -51,6 +51,7 @@ openshift_console_install=true
 openshift_master_default_subdomain=${var.app_cluster_subdomain}
 
 # registry
+openshift_hosted_registry_routetermination=reencrypt
 openshift_hosted_registry_storage_kind=${local.registry_storage_kind}
 openshift_hosted_registry_storage_volume_size=${var.registry_volume_size}Gi
 EOF
