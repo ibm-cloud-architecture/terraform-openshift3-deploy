@@ -29,6 +29,14 @@ data "template_file" "prepare_node_sh" {
   }
 }
 
+data "template_file" "prepare_bastion_sh" {
+  template = "${file("${path.module}/templates/prepare_bastion.sh.tpl")}"
+
+  vars = {
+    docker_block_dev = "${var.docker_block_device}"
+  }
+}
+
 resource "null_resource" "pre_install_node_common" {
   count = "${1 + var.node_count}"
 
@@ -129,7 +137,7 @@ resource "null_resource" "pre_install_cluster_bastion" {
   }
 
   provisioner "file" {
-    source      = "${path.module}/scripts/prepare_bastion.sh"
+    content      = "${data.template_file.prepare_bastion_sh.rendered}"
     destination = "/tmp/prepare_bastion.sh"
   }
 

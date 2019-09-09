@@ -20,12 +20,34 @@ yum install -y wget \
     psacct \
     vim \
     tmux \
+    docker \
     openshift-ansible \
     atomic-openshift-utils \
     atomic-openshift-excluder \
     atomic-openshift-docker-excluder
 
+echo "CONFIGURING DOCKER STORAGE, DOCKER_DEVICE=${docker_block_dev}"
+
+cat <<EOF | sudo tee /etc/sysconfig/docker-storage-setup
+STORAGE_DRIVER=overlay2
+DEVS=${docker_block_dev}
+CONTAINER_ROOT_LV_NAME=dockerlv
+CONTAINER_ROOT_LV_SIZE=100%FREE
+CONTAINER_ROOT_LV_MOUNT_PATH=/var/lib/docker
+VG=dockervg
+EOF
+
+sudo docker-storage-setup
+
+sudo systemctl enable docker
+sudo systemctl stop docker
+sudo rm -rf /var/lib/docker/*
+sudo systemctl restart docker
+sudo systemctl is-active docker
+
 atomic-openshift-excluder unexclude
+
+
 
 for config in /etc/sysconfig/network-scripts/ifcfg-e*; do
     sed -i -e '/NM_CONTROLLED=/d' $config
