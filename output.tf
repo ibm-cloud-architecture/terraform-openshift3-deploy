@@ -5,3 +5,13 @@ output "installed_resource" {
 output "openshift_inventory" {
     value = "${data.template_file.ansible_inventory.rendered}"
 }
+
+# TODO
+output "openshift_admin_user" {
+    value = "admin"
+}
+
+# TODO
+output "openshift_admin_password" {
+    value = "admin"
+}
