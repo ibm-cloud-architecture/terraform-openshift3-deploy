@@ -178,25 +178,3 @@ ${join("\n", var.custom_inventory)}
 ${data.template_file.ansible_inventory_nodes.rendered}
 EOF
 }
-
-#--------------------------------#
-#--------------------------------#
-resource "null_resource" "copy_ansible_inventory" {
-    triggers = {
-        inventory = "${data.template_file.ansible_inventory.rendered}"
-    }
-
-    connection {
-        type        = "ssh"
-        host        = "${var.bastion_ip_address}"
-        user        = "${var.bastion_ssh_user}"
-        password    = "${var.bastion_ssh_password}"
-        private_key = "${var.bastion_ssh_private_key}"
-    }
-
-    provisioner "file" {
-        when = "create"
-        content     = "${data.template_file.ansible_inventory.rendered}"
-        destination = "~/inventory.cfg"
-    }
-}

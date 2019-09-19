@@ -1,5 +1,8 @@
 output "installed_resource" {
-    value = "${join(",", list(null_resource.prerequisites.id, null_resource.deploy_cluster.id, null_resource.create_cluster_admin.id))}"
+    value = "${join(",", list(
+        module.prerequisites.module_completed, 
+        module.deploy_cluster.module_completed, 
+        null_resource.create_cluster_admin.id))}"
 }
 
 output "openshift_inventory" {

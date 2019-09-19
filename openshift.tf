@@ -9,146 +9,71 @@ resource "null_resource" "dependency" {
   }
 }
 
-#################################################
-# Prepare to install Openshift
-#################################################
-data "template_file" "prepare_node_common_sh" {
-  template = "${file("${path.module}/templates/prepare_node_common.sh.tpl")}"
+module "prepare_bastion" {
+  source = "github.com/ibm-cloud-architecture/terraform-ansible-runplaybooks.git"
 
-  vars = {
-    openshift_version = "${var.openshift_version}"
-    ansible_version = "${var.ansible_version}"
-  }
-}
+  dependson = "${
+    list(null_resource.dependency.id)
+  }"
 
-data "template_file" "prepare_node_sh" {
-  template = "${file("${path.module}/templates/prepare_node.sh.tpl")}"
-
-  vars = {
-    docker_block_dev = "${var.docker_block_device}"
-  }
-}
-
-data "template_file" "prepare_bastion_sh" {
-  template = "${file("${path.module}/templates/prepare_bastion.sh.tpl")}"
-
-  vars = {
-    docker_block_dev = "${var.docker_block_device}"
-  }
-}
-
-resource "null_resource" "pre_install_node_common" {
-  count = "${1 + var.node_count}"
-
-  depends_on = [
-    "null_resource.dependency"
+  ansible_playbook_dir = "${path.module}/playbooks"
+  ansible_playbooks = [
+      "playbooks/prepare_bastion.yaml"
   ]
 
-  triggers = {
-    node_list = "${join(",", local.all_node_ips_incl_bastion)}"
-    prepare_node_common_sh = "${data.template_file.prepare_node_common_sh.rendered}"
+  ansible_vars       = {
+    "docker_block_device" = "${var.docker_block_device}"
+    "openshift_vers" = "${var.openshift_version}"
+    "ansible_vers" = "${var.ansible_version}"
   }
 
-  connection {
-    type = "ssh"
-    host = "${element(local.all_node_ips_incl_bastion, count.index)}"
+  ssh_user           = "${var.ssh_user}"
+  ssh_password       = "${var.ssh_password}"
+  ssh_private_key    = "${var.ssh_private_key}"
 
-    user        = "${var.ssh_user}"
-    password    = "${var.ssh_password}"
-    private_key = "${var.ssh_private_key}"
+  bastion_ip_address       = "${var.bastion_ip_address}"
+  bastion_ssh_user         = "${var.bastion_ssh_user}"
+  bastion_ssh_password     = "${var.bastion_ssh_password}"
+  bastion_ssh_private_key  = "${var.bastion_ssh_private_key}"
 
-    bastion_host        = "${var.bastion_ip_address}"
-    bastion_user        = "${var.bastion_ssh_user}"
-    bastion_password    = "${var.bastion_ssh_password}"
-    bastion_private_key = "${var.bastion_ssh_private_key}"
-  }
+  node_ips        = "${list(var.bastion_ip_address)}"
+  node_hostnames  = "${list(var.bastion_ip_address)}"
 
-  provisioner "file" {
-    content = "${data.template_file.prepare_node_common_sh.rendered}"
-    destination = "/tmp/prepare_node_common.sh"
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-        "chmod +x /tmp/prepare_node_common.sh",
-        "sudo /tmp/prepare_node_common.sh",
-        "rm -f /tmp/prepare_node_common.sh"
-    ]
-  }
+  # ansible_verbosity = "-vvv"
 }
 
-resource "null_resource" "pre_install_cluster" {
-  count = "${var.node_count}"
+module "prepare_nodes" {
+  source = "github.com/ibm-cloud-architecture/terraform-ansible-runplaybooks.git"
 
-  depends_on = [
-    "null_resource.dependency",
-    "null_resource.pre_install_node_common"
+  dependson = "${
+    list(null_resource.dependency.id, 
+    module.prepare_bastion.module_completed)
+  }"
+
+  ansible_playbook_dir = "${path.module}/playbooks"
+  ansible_playbooks = [
+      "playbooks/prepare_nodes.yaml"
   ]
 
-  triggers = {
-    prepare_node_sh = "${data.template_file.prepare_node_sh.rendered}"
+  ansible_vars       = {
+    "docker_block_device" = "${var.docker_block_device}"
+    "openshift_vers" = "${var.openshift_version}"
+    "ansible_vers" = "${var.ansible_version}"
   }
 
-  connection {
-    type = "ssh"
-    host = "${element(local.all_node_ips, count.index)}"
-    
-    user        = "${var.ssh_user}"
-    password    = "${var.ssh_password}"
-    private_key = "${var.ssh_private_key}"
+  ssh_user           = "${var.ssh_user}"
+  ssh_password       = "${var.ssh_password}"
+  ssh_private_key    = "${var.ssh_private_key}"
 
-    bastion_host        = "${var.bastion_ip_address}"
-    bastion_user        = "${var.bastion_ssh_user}"
-    bastion_password    = "${var.bastion_ssh_password}"
-    bastion_private_key = "${var.bastion_ssh_private_key}"
-  }
+  bastion_ip_address       = "${var.bastion_ip_address}"
+  bastion_ssh_user         = "${var.bastion_ssh_user}"
+  bastion_ssh_password     = "${var.bastion_ssh_password}"
+  bastion_ssh_private_key  = "${var.bastion_ssh_private_key}"
 
-  provisioner "file" {
-    content      = "${data.template_file.prepare_node_sh.rendered}"
-    destination = "/tmp/prepare_node.sh"
-  }
+  node_ips        = "${local.all_node_ips}"
+  node_hostnames  = "${local.all_node_ips}"
 
-    provisioner "remote-exec" {
-      inline = [
-        "chmod +x /tmp/prepare_node.sh",
-        "test -e ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa",
-        "sudo /tmp/prepare_node.sh",
-        "rm -f /tmp/prepare_node.sh"
-      ]
-    }
-}
-
-resource "null_resource" "pre_install_cluster_bastion" {
-  depends_on = [
-    "null_resource.dependency",
-    "null_resource.pre_install_node_common",
-    "null_resource.copy_ansible_inventory",
-    "null_resource.pre_install_cluster"
-  ]
-
-  connection {
-    type = "ssh"
-
-    host        = "${var.bastion_ip_address}"
-    user        = "${var.bastion_ssh_user}"
-    password    = "${var.bastion_ssh_password}"
-    private_key = "${var.bastion_ssh_private_key}"
-
-  }
-
-  provisioner "file" {
-    content      = "${data.template_file.prepare_bastion_sh.rendered}"
-    destination = "/tmp/prepare_bastion.sh"
-  }
-
-  provisioner "remote-exec" {
-      inline = [
-          "chmod +x /tmp/prepare_bastion.sh",
-          "test -e ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa",
-          "sudo /tmp/prepare_bastion.sh",
-          "rm -f /tmp/prepare_bastion.sh"
-      ]
-  }
+  # ansible_verbosity = "-vvv"
 }
 
 resource "null_resource" "write_master_cert" {
@@ -261,63 +186,70 @@ EOF
 #################################################
 # Install Openshift
 #################################################
-resource "null_resource" "prerequisites" {
-  depends_on = [
-    "null_resource.pre_install_cluster_bastion",
-    "null_resource.pre_install_cluster",
-    "null_resource.write_master_cert",
-    "null_resource.write_master_key",
-    "null_resource.write_router_cert",
-    "null_resource.write_router_key",
-    "null_resource.write_router_ca_cert",
-    "null_resource.copy_ansible_inventory"
+
+module "prerequisites" {
+  source = "github.com/ibm-cloud-architecture/terraform-ansible-runplaybooks.git"
+
+  dependson = "${
+    concat(list(null_resource.dependency.id, 
+    module.prepare_bastion.module_completed,
+    module.prepare_nodes.module_completed),
+    null_resource.write_master_cert.*.id,
+    null_resource.write_master_key.*.id,
+    null_resource.write_router_cert.*.id,
+    null_resource.write_router_key.*.id,
+    null_resource.write_router_ca_cert.*.id)
+  }"
+
+  ansible_inventory = "${data.template_file.ansible_inventory.rendered}"
+        
+  ansible_playbooks = [
+      "/usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml"
   ]
 
-  triggers = {
-    inventory = "${data.template_file.ansible_inventory.rendered}"
-  }
+  ssh_user           = "${var.ssh_user}"
+  ssh_password       = "${var.ssh_password}"
+  ssh_private_key    = "${var.ssh_private_key}"
 
-  connection {
-    type = "ssh"
-    
-    host        = "${var.bastion_ip_address}"
-    user        = "${var.bastion_ssh_user}"
-    password    = "${var.bastion_ssh_password}"
-    private_key = "${var.bastion_ssh_private_key}"
-  }
+  bastion_ip_address       = "${var.bastion_ip_address}"
+  bastion_ssh_user         = "${var.bastion_ssh_user}"
+  bastion_ssh_password     = "${var.bastion_ssh_password}"
+  bastion_ssh_private_key  = "${var.bastion_ssh_private_key}"
 
-
-
-  provisioner "remote-exec" {
-    inline = [
-        "ansible-playbook -i ~/inventory.cfg /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml",
-    ]
-  }
+  # ansible_verbosity = "-vvv"
 }
 
-resource "null_resource" "deploy_cluster" {
-  depends_on = [
-     "null_resource.prerequisites"
+module "deploy_cluster" {
+  source = "github.com/ibm-cloud-architecture/terraform-ansible-runplaybooks.git"
+
+  dependson = "${
+    concat(list(null_resource.dependency.id, 
+    module.prepare_bastion.module_completed,
+    module.prepare_nodes.module_completed,
+    module.prerequisites.module_completed),
+    null_resource.write_master_cert.*.id,
+    null_resource.write_master_key.*.id,
+    null_resource.write_router_cert.*.id,
+    null_resource.write_router_key.*.id,
+    null_resource.write_router_ca_cert.*.id)
+  }"
+
+  ansible_inventory = "${data.template_file.ansible_inventory.rendered}"
+        
+  ansible_playbooks = [
+      "/usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml"
   ]
 
-  triggers = {
-    inventory = "${data.template_file.ansible_inventory.rendered}"
-  }
+  ssh_user           = "${var.ssh_user}"
+  ssh_password       = "${var.ssh_password}"
+  ssh_private_key    = "${var.ssh_private_key}"
 
-  connection {
-    type = "ssh"
-    
-    host        = "${var.bastion_ip_address}"
-    user        = "${var.bastion_ssh_user}"
-    password    = "${var.bastion_ssh_password}"
-    private_key = "${var.bastion_ssh_private_key}"
-  }
+  bastion_ip_address       = "${var.bastion_ip_address}"
+  bastion_ssh_user         = "${var.bastion_ssh_user}"
+  bastion_ssh_password     = "${var.bastion_ssh_password}"
+  bastion_ssh_private_key  = "${var.bastion_ssh_private_key}"
 
-  provisioner "remote-exec" {
-    inline = [
-        "ansible-playbook -i ~/inventory.cfg /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml",
-    ]
-  }
+  # ansible_verbosity = "-vvv"
 }
 
 resource "null_resource" "create_cluster_admin" {
@@ -340,7 +272,9 @@ resource "null_resource" "create_cluster_admin" {
         ]
     }
 
-    depends_on    = ["null_resource.deploy_cluster"]
+    depends_on    = [
+      "module.deploy_cluster"
+    ]
 }
 
 #################################################
