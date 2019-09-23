@@ -9,9 +9,10 @@
   #     name: "{{ packages }}"
 
   - name: install needed rpm(s)
-    package:
-      name: "{{ packages | join(',') }}"
+    yum:
+      name: "{{ item }}"
       state: present
+    with_items: "{{ packages }}"
     register: result
     until: result is succeeded
 
@@ -21,10 +22,13 @@
       state: enforcing
     register: selinux
 
-  - name: Reboot Server after SELinux
-    shell: sleep 2 && shutdown -r now
+  - name: Reboot Server after SELinux Change
+    become: yes
+    shell: sleep 2 && /sbin/shutdown -r now "System reboot"
+    async: 1
+    poll: 0
     when: selinux.reboot_required
 
   - name: Wait for Server to Come up
-    local_action: wait_for host={{ ansible_ssh_host }} state=started
+    local_action: wait_for port=22 host="{{ ansible_ssh_host | default(inventory_hostname) }}"  search_regex=OpenSSH delay=120
     when: selinux.reboot_required

@@ -16,6 +16,10 @@ module "prepare_bastion" {
     list(null_resource.dependency.id)
   }"
 
+  triggerson = {
+    ip = "${var.bastion_ip_address}"
+  }
+
   ansible_playbook_dir = "${path.module}/playbooks"
   ansible_playbooks = [
       "playbooks/prepare_bastion.yaml"
@@ -50,6 +54,10 @@ module "prepare_nodes" {
     module.prepare_bastion.module_completed)
   }"
 
+  triggerson = {
+    all_ips = "${local.all_node_ips}"
+  }
+
   ansible_playbook_dir = "${path.module}/playbooks"
   ansible_playbooks = [
       "playbooks/prepare_nodes.yaml"
@@ -78,7 +86,6 @@ module "prepare_nodes" {
 
 resource "null_resource" "write_master_cert" {
   count = "${var.master_cert != "" ? 1 : 0}"
-
   connection {
     type = "ssh"
     
@@ -99,6 +106,10 @@ EOF
 
 resource "null_resource" "write_master_key" {
   count = "${var.master_key != "" ? 1 : 0}"
+
+  triggers = {
+    key = "${var.master_key}"
+  }
 
   connection {
     type = "ssh"
@@ -121,6 +132,10 @@ EOF
 resource "null_resource" "write_router_cert" {
   count = "${var.router_cert != "" ? 1 : 0}"
 
+  triggers = {
+    cert = "${var.router_cert}"
+  }
+
   connection {
     type = "ssh"
     
@@ -141,6 +156,10 @@ EOF
 
 resource "null_resource" "write_router_key" {
   count = "${var.router_key != "" ? 1 : 0}"
+  
+  triggers = {
+    key = "${var.router_key}"
+  }
 
   connection {
     type = "ssh"
@@ -163,6 +182,10 @@ EOF
 # write out the letsencrypt CA
 resource "null_resource" "write_router_ca_cert" {
   count = "${var.router_ca_cert != "" ? 1 : 0}"
+
+  triggers = {
+    cert = "${var.router_ca_cert}"
+  }
 
   connection {
     type = "ssh"
@@ -201,6 +224,13 @@ module "prerequisites" {
     null_resource.write_router_ca_cert.*.id)
   }"
 
+  triggerson = {
+    master = "${var.master_private_ip}"
+    infra = "${var.infra_private_ip}"
+    worker = "${var.worker_private_ip}"
+    storage = "${var.storage_private_ip}"
+  }
+
   ansible_inventory = "${data.template_file.ansible_inventory.rendered}"
         
   ansible_playbooks = [
@@ -234,6 +264,13 @@ module "deploy_cluster" {
     null_resource.write_router_ca_cert.*.id)
   }"
 
+  triggerson = {
+    master = "${var.master_private_ip}"
+    infra = "${var.infra_private_ip}"
+    worker = "${var.worker_private_ip}"
+    storage = "${var.storage_private_ip}"
+  }
+
   ansible_inventory = "${data.template_file.ansible_inventory.rendered}"
         
   ansible_playbooks = [
@@ -263,6 +300,10 @@ resource "null_resource" "create_cluster_admin" {
       bastion_user        = "${var.bastion_ssh_user}"
       bastion_password    = "${var.bastion_ssh_password}"
       bastion_private_key = "${var.bastion_ssh_private_key}"
+    }
+
+    triggers = {
+      user = "${var.openshift_admin_user}"
     }
 
     provisioner "remote-exec" {
