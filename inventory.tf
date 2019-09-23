@@ -1,7 +1,7 @@
 locals {
     gluster_storage_devices = "${join(",", formatlist("\"%v\"", var.gluster_block_devices))}"
     registry_storage_kind = "${var.registry_storage_kind != "" ? var.registry_storage_kind : 
-      (var.storage_count > 0 ? "gluster" : "")}"
+      (var.storage_count > 0 ? "glusterfs" : "")}"
 }
 
 data "template_file" "ansible_inventory_base" {
