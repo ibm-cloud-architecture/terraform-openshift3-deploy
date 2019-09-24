@@ -55,7 +55,7 @@ module "prepare_nodes" {
   }"
 
   triggerson = {
-    all_ips = "${local.all_node_ips}"
+    all_ips = "${join(",", local.all_node_ips)}"
   }
 
   ansible_playbook_dir = "${path.module}/playbooks"
@@ -85,7 +85,10 @@ module "prepare_nodes" {
 }
 
 resource "null_resource" "write_master_cert" {
-  count = "${var.master_cert != "" ? 1 : 0}"
+  triggers = {
+    cert = "${var.master_cert}"
+  }
+
   connection {
     type = "ssh"
     
@@ -93,7 +96,6 @@ resource "null_resource" "write_master_cert" {
     user        = "${var.bastion_ssh_user}"
     password    = "${var.bastion_ssh_password}"
     private_key = "${var.bastion_ssh_private_key}"
-
   }
 
   provisioner "file" {
@@ -105,8 +107,6 @@ EOF
 }
 
 resource "null_resource" "write_master_key" {
-  count = "${var.master_key != "" ? 1 : 0}"
-
   triggers = {
     key = "${var.master_key}"
   }
@@ -130,8 +130,6 @@ EOF
 }
 
 resource "null_resource" "write_router_cert" {
-  count = "${var.router_cert != "" ? 1 : 0}"
-
   triggers = {
     cert = "${var.router_cert}"
   }
@@ -155,8 +153,6 @@ EOF
 }
 
 resource "null_resource" "write_router_key" {
-  count = "${var.router_key != "" ? 1 : 0}"
-  
   triggers = {
     key = "${var.router_key}"
   }
@@ -181,8 +177,6 @@ EOF
 
 # write out the letsencrypt CA
 resource "null_resource" "write_router_ca_cert" {
-  count = "${var.router_ca_cert != "" ? 1 : 0}"
-
   triggers = {
     cert = "${var.router_ca_cert}"
   }
@@ -194,9 +188,7 @@ resource "null_resource" "write_router_ca_cert" {
     user        = "${var.bastion_ssh_user}"
     password    = "${var.bastion_ssh_password}"
     private_key = "${var.bastion_ssh_private_key}"
-
   }
-
 
   provisioner "file" {
     content = <<EOF
@@ -225,10 +217,11 @@ module "prerequisites" {
   }"
 
   triggerson = {
-    master = "${var.master_private_ip}"
-    infra = "${var.infra_private_ip}"
-    worker = "${var.worker_private_ip}"
-    storage = "${var.storage_private_ip}"
+    master = "${join(",", var.master_private_ip)}"
+    infra = "${join(",", var.infra_private_ip)}"
+    worker = "${join(",", var.worker_private_ip)}"
+    storage = "${join(",", var.storage_private_ip)}"
+    inventory = "${data.template_file.ansible_inventory.rendered}"
   }
 
   ansible_inventory = "${data.template_file.ansible_inventory.rendered}"
@@ -265,10 +258,11 @@ module "deploy_cluster" {
   }"
 
   triggerson = {
-    master = "${var.master_private_ip}"
-    infra = "${var.infra_private_ip}"
-    worker = "${var.worker_private_ip}"
-    storage = "${var.storage_private_ip}"
+    master = "${join(",", var.master_private_ip)}"
+    infra = "${join(",", var.infra_private_ip)}"
+    worker = "${join(",", var.worker_private_ip)}"
+    storage = "${join(",", var.storage_private_ip)}"
+    inventory = "${data.template_file.ansible_inventory.rendered}"
   }
 
   ansible_inventory = "${data.template_file.ansible_inventory.rendered}"

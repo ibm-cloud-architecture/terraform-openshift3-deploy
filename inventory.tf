@@ -57,18 +57,16 @@ EOF
 }
 
 data "template_file" "ansible_inventory_master_certs" {
-    count = "${var.master_cert != "" ? 1 : 0}"
-
     template = <<EOF
+# master certs
 openshift_master_named_certificates=[{'certfile': '~/master.crt', 'keyfile': '~/master.key', 'names': ['${var.cluster_public_hostname}']}]
 openshift_master_overwrite_named_certificates=true
 EOF
 }
 
 data "template_file" "ansible_inventory_router_certs" {
-    count = "${var.router_cert != "" ? 1 : 0}"
-
     template = <<EOF
+# router certs
 openshift_hosted_router_certificate={'certfile': '~/router.crt', 'keyfile': '~/router.key', 'cafile': '~/router_ca.crt'}
 openshift_console_cert=~/router.crt
 openshift_console_key=~/router.key
@@ -76,7 +74,6 @@ openshift_console_key=~/router.key
 # registry certs
 openshift_hosted_registry_routetermination=reencrypt
 openshift_hosted_registry_routecertificates={'certfile': '~/router.crt', 'keyfile': '~/router.key', 'cafile': '~/router_ca.crt'}
-
 EOF
 }
 
@@ -168,8 +165,8 @@ EOF
 data "template_file" "ansible_inventory" {
     template = <<EOF
 ${data.template_file.ansible_inventory_base.rendered}
-${join("\n", data.template_file.ansible_inventory_master_certs.*.rendered)}
-${join("\n", data.template_file.ansible_inventory_router_certs.*.rendered)}
+${var.master_cert != "" ? "${join("\n", data.template_file.ansible_inventory_master_certs.*.rendered)}" : ""}
+${var.router_cert != "" ? "${join("\n", data.template_file.ansible_inventory_router_certs.*.rendered)}" : ""}
 ${data.template_file.ansible_inventory_monitoring.rendered}
 ${data.template_file.ansible_inventory_logging.rendered}
 ${data.template_file.ansible_inventory_metrics.rendered}
