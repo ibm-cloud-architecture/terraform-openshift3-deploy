@@ -29,6 +29,10 @@
     poll: 0
     when: selinux.reboot_required
 
-  - name: Wait for Server to Come up
-    local_action: wait_for port=22 host="{{ ansible_ssh_host | default(inventory_hostname) }}"  search_regex=OpenSSH delay=120
+  - name: Wait for reboot
+    wait_for_connection:
+      connect_timeout: 20
+      sleep: 5
+      delay: 5
+      timeout: 300
     when: selinux.reboot_required
