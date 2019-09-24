@@ -24,12 +24,12 @@
       state: present
     with_items: "{{ storage_config }}"
     when: check_storage_configured.stdout == "0" and
-          docker_block_stat.exists == true
+          docker_block_stat.stat.exists == true
 
   - name: Configure Docker Storage
     shell: docker-storage-setup
     when: check_storage_configured.stdout == "0" and
-          docker_block_stat.exists == true
+          docker_block_stat.stat.exists == true
 
   - name: Stop Docker
     service:
@@ -37,7 +37,7 @@
       state: stopped
       enabled: yes
     when: check_storage_configured.stdout == "0" and
-          docker_block_stat.exists == true
+          docker_block_stat.stat.exists == true
 
 
   - name: Empty /var/lib/docker
@@ -45,7 +45,7 @@
       path: /var/lib/docker/*
       state: absent
     when: check_storage_configured.stdout == "0"  and
-          docker_block_stat.exists == true
+          docker_block_stat.stat.exists == true
 
   - name: Start Docker
     service:
